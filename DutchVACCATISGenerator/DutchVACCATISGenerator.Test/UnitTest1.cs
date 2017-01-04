@@ -9,7 +9,7 @@ namespace DutchVACCATISGenerator.Test
         [TestMethod]
         public void RealRunwayBackgroundWorker()
         {
-            DutchVACCATISGenerator form = new DutchVACCATISGenerator();
+            Forms.DutchVACCATISGenerator form = new Forms.DutchVACCATISGenerator();
 
             PrivateObject pForm = new PrivateObject(form);
 

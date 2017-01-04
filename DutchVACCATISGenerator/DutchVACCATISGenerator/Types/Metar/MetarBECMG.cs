@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace DutchVACCATISGenerator
+namespace DutchVACCATISGenerator.Types.Metar
 {
     /// <summary>
     /// Represents the fields for a BECMG trend in a METAR.

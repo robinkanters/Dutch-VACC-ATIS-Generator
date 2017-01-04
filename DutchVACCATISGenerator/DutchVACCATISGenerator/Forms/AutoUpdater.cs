@@ -7,15 +7,15 @@ using System.Net;
 using System.Reflection;
 using System.Windows.Forms;
 
-namespace DutchVACCATISGenerator
+namespace DutchVACCATISGenerator.Forms
 {
     /// <summary>
     /// AutoUpdater class.
     /// </summary>
     public partial class AutoUpdater : Form
     {
-        private String fileName;
-        private String executablePath;
+        private string _fileName;
+        private readonly string _executablePath;
 
         /// <summary>
         /// Constructor of AutoUpdater.
@@ -25,34 +25,34 @@ namespace DutchVACCATISGenerator
             InitializeComponent();
 
             //Set path of executable.
-            executablePath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + @"\";
+            _executablePath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + @"\";
 
             //Start downloading latest version.
-            downloadLatestVersion();
+            DownloadLatestVersion();
         }
 
         /// <summary>
         /// Download latest version of Dutch VACC ATIS Generator.
         /// </summary>
-        private void downloadLatestVersion()
+        private void DownloadLatestVersion()
         {
             try
             {
                 //Create web client.
-                WebClient webClient = new WebClient();
+                var webClient = new WebClient();
 
                 //Set web client's completed event.
-                webClient.DownloadFileCompleted += new AsyncCompletedEventHandler(webClient_DownloadCompleted);
+                webClient.DownloadFileCompleted += webClient_DownloadCompleted;
 
                 //Set web client's progress changed event.
-                webClient.DownloadProgressChanged += new DownloadProgressChangedEventHandler(webClient_ProgressChanged);
+                webClient.DownloadProgressChanged += webClient_ProgressChanged;
 
                 //Download the zip file.
-                webClient.DownloadFileAsync(new Uri("http://daanbroekhuizen.com/Dutch VACC/Dutch VACC ATIS Generator/" + getZipName()), executablePath + fileName);
+                webClient.DownloadFileAsync(new Uri("http://daanbroekhuizen.com/Dutch VACC/Dutch VACC ATIS Generator/" + GetZipName()), _executablePath + _fileName);
             }
             catch(Exception)
             {
-                this.Close();
+                Close();
             }
         }
 
@@ -60,18 +60,18 @@ namespace DutchVACCATISGenerator
         /// Get the name of the zip file to download (version).
         /// </summary>
         /// <returns>Name of the latest zip file.</returns>
-        private String getZipName()
+        private string GetZipName()
         {
             //Request zip file name.
-            WebRequest request = WebRequest.Create("http://daanbroekhuizen.com/Dutch VACC/Dutch VACC ATIS Generator/Version/filename.php");
-            WebResponse response = request.GetResponse();
+            var request = WebRequest.Create("http://daanbroekhuizen.com/Dutch VACC/Dutch VACC ATIS Generator/Version/filename.php");
+            var response = request.GetResponse();
 
             //Read zip file name.
-            System.IO.StreamReader reader = new System.IO.StreamReader(response.GetResponseStream());
-            fileName = reader.ReadToEnd();
+            var reader = new StreamReader(response.GetResponseStream());
+            _fileName = reader.ReadToEnd();
             
             //Return and trim file name;
-            return fileName = fileName.Trim();
+            return _fileName = _fileName.Trim();
         }
 
         /// <summary>
@@ -95,24 +95,24 @@ namespace DutchVACCATISGenerator
             try
             {
                 //Extract zip.
-                ZipFile.ExtractToDirectory(executablePath + fileName, executablePath + @"\temp");
+                ZipFile.ExtractToDirectory(_executablePath + _fileName, _executablePath + @"\temp");
 
                 //Set temp folder to be hidden.
-                DirectoryInfo directoryInfo = Directory.CreateDirectory(executablePath + @"\temp");
+                var directoryInfo = Directory.CreateDirectory(_executablePath + @"\temp");
                 directoryInfo.Attributes = FileAttributes.Directory | FileAttributes.Hidden | FileAttributes.ReadOnly; 
 
                 //Delete zip.
-                File.Delete(executablePath + fileName);
+                File.Delete(_executablePath + _fileName);
 
                 //Start setup.
-                Process.Start(executablePath + @"\temp\" + "Dutch VACC ATIS Generator - Setup.exe");
+                Process.Start(_executablePath + @"\temp\" + "Dutch VACC ATIS Generator - Setup.exe");
 
                 //Exit program to run setup.
                 Application.Exit();
             }
             catch(Exception)
             {
-                this.Close();
+                Close();
             }
         }
     }

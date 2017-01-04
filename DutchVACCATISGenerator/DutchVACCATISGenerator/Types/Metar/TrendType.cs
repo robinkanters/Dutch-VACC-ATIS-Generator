@@ -1,4 +1,4 @@
-﻿namespace DutchVACCATISGenerator
+﻿namespace DutchVACCATISGenerator.Types.Metar
 {
     /// <summary>
     /// Enum for indicating MetarType when METAR is being processed.

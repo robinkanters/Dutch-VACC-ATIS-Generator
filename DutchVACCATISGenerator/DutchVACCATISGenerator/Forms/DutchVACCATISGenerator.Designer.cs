@@ -1,4 +1,4 @@
-﻿namespace DutchVACCATISGenerator
+﻿namespace DutchVACCATISGenerator.Forms
 {
     partial class DutchVACCATISGenerator
     {
@@ -30,10 +30,10 @@
         {
             this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(DutchVACCATISGenerator));
-            this.getMetarButton = new System.Windows.Forms.Button();
+            this.GetMetarButton = new System.Windows.Forms.Button();
             this.icaoTextBox = new System.Windows.Forms.TextBox();
             this.metarBackgroundWorker = new System.ComponentModel.BackgroundWorker();
-            this.metarTextBox = new System.Windows.Forms.TextBox();
+            this.MetarTextBox = new System.Windows.Forms.TextBox();
             this.lastLabel = new System.Windows.Forms.Label();
             this.processMetarButton = new System.Windows.Forms.Button();
             this.atisIndexGroupBox = new System.Windows.Forms.GroupBox();
@@ -96,7 +96,7 @@
             this.autoFetchMETARToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.autoGenerateATISToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.autoLoadEHAMRunwayToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.autoProcessMETARToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.AutoProcessMETARToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.ehamToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.ehrdToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.playSoundWhenMETARIsFetchedToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -154,16 +154,16 @@
             this.additionalOptionsGroupBox.SuspendLayout();
             this.SuspendLayout();
             // 
-            // getMetarButton
+            // GetMetarButton
             // 
-            this.getMetarButton.Enabled = false;
-            this.getMetarButton.Location = new System.Drawing.Point(50, 18);
-            this.getMetarButton.Name = "getMetarButton";
-            this.getMetarButton.Size = new System.Drawing.Size(75, 22);
-            this.getMetarButton.TabIndex = 2;
-            this.getMetarButton.Text = "Get METAR";
-            this.getMetarButton.UseVisualStyleBackColor = true;
-            this.getMetarButton.Click += new System.EventHandler(this.getMetarButton_Click);
+            this.GetMetarButton.Enabled = false;
+            this.GetMetarButton.Location = new System.Drawing.Point(50, 18);
+            this.GetMetarButton.Name = "GetMetarButton";
+            this.GetMetarButton.Size = new System.Drawing.Size(75, 22);
+            this.GetMetarButton.TabIndex = 2;
+            this.GetMetarButton.Text = "Get METAR";
+            this.GetMetarButton.UseVisualStyleBackColor = true;
+            this.GetMetarButton.Click += new System.EventHandler(this.getMetarButton_Click);
             // 
             // icaoTextBox
             // 
@@ -181,15 +181,15 @@
             this.metarBackgroundWorker.DoWork += new System.ComponentModel.DoWorkEventHandler(this.metarBackgroundWorker_DoWork);
             this.metarBackgroundWorker.RunWorkerCompleted += new System.ComponentModel.RunWorkerCompletedEventHandler(this.metarBackgroundWorker_RunWorkerCompleted);
             // 
-            // metarTextBox
+            // MetarTextBox
             // 
-            this.metarTextBox.Location = new System.Drawing.Point(6, 45);
-            this.metarTextBox.Multiline = true;
-            this.metarTextBox.Name = "metarTextBox";
-            this.metarTextBox.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.metarTextBox.Size = new System.Drawing.Size(436, 32);
-            this.metarTextBox.TabIndex = 3;
-            this.metarTextBox.TextChanged += new System.EventHandler(this.metarTextBox_TextChanged);
+            this.MetarTextBox.Location = new System.Drawing.Point(6, 45);
+            this.MetarTextBox.Multiline = true;
+            this.MetarTextBox.Name = "MetarTextBox";
+            this.MetarTextBox.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
+            this.MetarTextBox.Size = new System.Drawing.Size(436, 32);
+            this.MetarTextBox.TabIndex = 3;
+            this.MetarTextBox.TextChanged += new System.EventHandler(this.metarTextBox_TextChanged);
             // 
             // lastLabel
             // 
@@ -208,7 +208,7 @@
             this.processMetarButton.TabIndex = 4;
             this.processMetarButton.Text = "Process METAR";
             this.processMetarButton.UseVisualStyleBackColor = true;
-            this.processMetarButton.Click += new System.EventHandler(this.processMetarButton_Click);
+            this.processMetarButton.Click += new System.EventHandler(this.ProcessMetarButton_Click);
             // 
             // atisIndexGroupBox
             // 
@@ -490,8 +490,8 @@
             this.metarInputGroupBox.Controls.Add(this.fetchMetarLabel);
             this.metarInputGroupBox.Controls.Add(this.getSelectBestRunwayButton);
             this.metarInputGroupBox.Controls.Add(this.icaoTextBox);
-            this.metarInputGroupBox.Controls.Add(this.getMetarButton);
-            this.metarInputGroupBox.Controls.Add(this.metarTextBox);
+            this.metarInputGroupBox.Controls.Add(this.GetMetarButton);
+            this.metarInputGroupBox.Controls.Add(this.MetarTextBox);
             this.metarInputGroupBox.Controls.Add(this.lastLabel);
             this.metarInputGroupBox.Controls.Add(this.processMetarButton);
             this.metarInputGroupBox.Location = new System.Drawing.Point(13, 29);
@@ -867,7 +867,7 @@
             this.autoFetchMETARToolStripMenuItem,
             this.autoGenerateATISToolStripMenuItem,
             this.autoLoadEHAMRunwayToolStripMenuItem,
-            this.autoProcessMETARToolStripMenuItem,
+            this.AutoProcessMETARToolStripMenuItem,
             this.seperatorAutoProcessToolStripMenuItem,
             this.ehamToolStripMenuItem,
             this.ehrdToolStripMenuItem,
@@ -903,13 +903,13 @@
             this.autoLoadEHAMRunwayToolStripMenuItem.Text = "Auto load EHAM runways (on startup)";
             this.autoLoadEHAMRunwayToolStripMenuItem.CheckedChanged += new System.EventHandler(this.autoLoadEHAMRunwayToolStripMenuItem_CheckedChanged);
             // 
-            // autoProcessMETARToolStripMenuItem
+            // AutoProcessMETARToolStripMenuItem
             // 
-            this.autoProcessMETARToolStripMenuItem.CheckOnClick = true;
-            this.autoProcessMETARToolStripMenuItem.Name = "autoProcessMETARToolStripMenuItem";
-            this.autoProcessMETARToolStripMenuItem.Size = new System.Drawing.Size(295, 22);
-            this.autoProcessMETARToolStripMenuItem.Text = "Auto process METAR";
-            this.autoProcessMETARToolStripMenuItem.CheckedChanged += new System.EventHandler(this.autoProcessMETARToolStripMenuItem_CheckedChanged);
+            this.AutoProcessMETARToolStripMenuItem.CheckOnClick = true;
+            this.AutoProcessMETARToolStripMenuItem.Name = "AutoProcessMETARToolStripMenuItem";
+            this.AutoProcessMETARToolStripMenuItem.Size = new System.Drawing.Size(295, 22);
+            this.AutoProcessMETARToolStripMenuItem.Text = "Auto process METAR";
+            this.AutoProcessMETARToolStripMenuItem.CheckedChanged += new System.EventHandler(this.autoProcessMETARToolStripMenuItem_CheckedChanged);
             // 
             // ehamToolStripMenuItem
             // 
@@ -1207,10 +1207,10 @@
 
         #endregion
 
-        private System.Windows.Forms.Button getMetarButton;
+        public System.Windows.Forms.Button GetMetarButton;
         private System.Windows.Forms.TextBox icaoTextBox;
         private System.ComponentModel.BackgroundWorker metarBackgroundWorker;
-        private System.Windows.Forms.TextBox metarTextBox;
+        public System.Windows.Forms.TextBox MetarTextBox;
         private System.Windows.Forms.Label lastLabel;
         private System.Windows.Forms.Button processMetarButton;
         private System.Windows.Forms.GroupBox atisIndexGroupBox;
@@ -1220,12 +1220,12 @@
         private System.Windows.Forms.GroupBox EHAMmainRunwaysGroupBox;
         private System.Windows.Forms.CheckBox EHAMsecondaryLandingRunwayCheckBox;
         private System.Windows.Forms.CheckBox EHAMmainLandingRunwayCheckBox;
-        private System.Windows.Forms.ComboBox EHAMsecondaryLandingRunwayComboBox;
+        public System.Windows.Forms.ComboBox EHAMsecondaryLandingRunwayComboBox;
         private System.Windows.Forms.GroupBox EHAMsecondaryLandingRunwayGroupBox;
         private System.Windows.Forms.GroupBox EHAMmainLandingRunwayGroupBox;
         private System.Windows.Forms.GroupBox EHAMsecondaryRunwaysGroupBox;
         private System.Windows.Forms.GroupBox EHAMsecondaryDepartureRunwayGroupBox;
-        private System.Windows.Forms.ComboBox EHAMsecondaryDepartureRunwayComboBox;
+        public System.Windows.Forms.ComboBox EHAMsecondaryDepartureRunwayComboBox;
         private System.Windows.Forms.CheckBox EHAMsecondaryDepartureRunwayCheckBox;
         private System.Windows.Forms.GroupBox EHAMmainDepartureRunwayGroupBox;
         private System.Windows.Forms.CheckBox EHAMmainDepartureRunwayCheckBox;
@@ -1279,13 +1279,13 @@
         private System.Windows.Forms.CheckBox addWindRecordCheckBox;
         private System.Windows.Forms.ToolStripMenuItem amsterdamInfoToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem dutchVACCToolStripMenuItem;
-        private System.Windows.Forms.Button getSelectBestRunwayButton;
+        public System.Windows.Forms.Button getSelectBestRunwayButton;
         public System.Windows.Forms.ToolStripMenuItem tAFToolStripMenuItem;
         public System.Windows.Forms.ToolStripMenuItem runwayInfoToolStripMenuItem;
         public System.Windows.Forms.ToolStripMenuItem soundToolStripMenuItem;
         private System.Windows.Forms.CheckBox userDefinedExtraCheckBox;
         private System.Windows.Forms.ToolStripMenuItem settingsToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem autoProcessMETARToolStripMenuItem;
+        public System.Windows.Forms.ToolStripMenuItem AutoProcessMETARToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem autoFetchMETARToolStripMenuItem;
         private System.Windows.Forms.Label fetchMetarLabel;
         private System.Windows.Forms.Timer metarFetchTimer;

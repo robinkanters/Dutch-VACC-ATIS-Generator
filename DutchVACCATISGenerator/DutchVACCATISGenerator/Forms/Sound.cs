@@ -1,13 +1,13 @@
-﻿using NAudio.Wave;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
+using NAudio.Wave;
 
-namespace DutchVACCATISGenerator
+namespace DutchVACCATISGenerator.Forms
 {
     /// <summary>
     /// Sound class.

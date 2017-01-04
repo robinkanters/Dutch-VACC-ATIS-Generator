@@ -6,12 +6,15 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Media;
-using System.Net;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
+using DutchVACCATISGenerator.Extensions;
+using DutchVACCATISGenerator.Resources;
+using DutchVACCATISGenerator.Types.Metar;
+using DutchVACCATISGenerator.Workers;
 
-namespace DutchVACCATISGenerator
+namespace DutchVACCATISGenerator.Forms
 {
     /// <summary>
     /// DutchVACCATISGenerator class.
@@ -19,22 +22,25 @@ namespace DutchVACCATISGenerator
     public partial class DutchVACCATISGenerator : Form
     {
         private int atisIndex { get; set; }
-        public List<String> atisSamples { get; set; }
-        private List<String> departureRunways { get; set; }
-        private Boolean icaoTabSwitched { get; set; }
-        private List<String> landingRunways { get; set; }
-        private String latestVersion { get; set; }
-        private String metar { get; set; }
+        public List<string> atisSamples { get; set; }
+        private bool icaoTabSwitched { get; set; }
+        public string Metar { get; set; }
         private MetarProcessor metarProcessor { get; set; }
-        private List<String> phoneticAlphabet { get; set; }
-        private Boolean randomLetter { get; set; }
+        private List<string> phoneticAlphabet { get; set; }
+        private bool randomLetter { get; set; }
         private RunwayInfo runwayInfo { get; set; }
-        private Boolean runwayInfoState { get; set; }
+        private bool runwayInfoState { get; set; }
         private Sound sound { get; set; }
-        private Boolean soundState { get; set; }
+        private bool soundState { get; set; }
         private TAF taf { get; set; }
         private DateTime timerEnabled { get; set; }
-        private Boolean userLetterSelection { get; set; }
+        private bool userLetterSelection { get; set; }
+
+
+        private MetarWorker _metarWorker;
+        private RealRunwayWorker _realRunwayWorker;
+        private VersionWorker _versionWorker;
+
 
         /// <summary>
         /// Retrieves a handle to the foreground window (the window with which the user is currently working).
@@ -42,32 +48,37 @@ namespace DutchVACCATISGenerator
         /// <returns>IntPtr - Handle of foreground window</returns>
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         public static extern IntPtr GetForegroundWindow();
-        
+
         /// <summary>
         /// Constructor of DutchVACCATISGenerator.
         /// </summary>
         public DutchVACCATISGenerator()
         {
+            //Initialize workers.
+            _metarWorker = new MetarWorker(this);
+            _realRunwayWorker = new RealRunwayWorker(this);
+            _versionWorker = new VersionWorker();
+
             InitializeComponent();
 
             //Load settings.
-            loadSettings();
+            LoadSettings();
 
             //Set initial states of boolean.
             soundState = runwayInfoState = icaoTabSwitched = userLetterSelection = randomLetter = false;
 
             //Set phonetic alphabet.
-            setPhoneticAlphabet();
+            SetPhoneticAlphabet();
 
             //Set ATIS index and label.
-            randomizeATISLetter();
+            RandomizeATISLetter();
 
             //Start version background worker.
             versionBackgroundWorker.RunWorkerAsync();
 
             //Load EHAM METAR.
             metarBackgroundWorker.RunWorkerAsync(icaoTextBox.Text);
-           
+
             //Check if temp directory exists, if so, delete it.
             if (Directory.Exists(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + @"\temp"))
             {
@@ -88,7 +99,7 @@ namespace DutchVACCATISGenerator
                 realRunwayBackgroundWorker.RunWorkerAsync();
 
             //If auto generate ATIS is selected.
-            if(autoGenerateATISToolStripMenuItem.Checked)
+            if (autoGenerateATISToolStripMenuItem.Checked)
                 autoGenerateATISBackgroundWorker.RunWorkerAsync();
 
             //Initialize sound form.
@@ -109,62 +120,17 @@ namespace DutchVACCATISGenerator
             String _ICAO = icaoTextBox.Text;
 
             //If no ICAO has been entered.
-            if(_ICAO == String.Empty)
+            if (_ICAO == String.Empty)
             {
                 MessageBox.Show("Enter an ICAO code.", "Warning"); return;
             }
 
             //Disable the get METAR button so the user can't overload it.
-            getMetarButton.Enabled = false;
+            GetMetarButton.Enabled = false;
 
             //Start METAR background worker to start pulling the METAR.
             if (!metarBackgroundWorker.IsBusy)
                 metarBackgroundWorker.RunWorkerAsync(_ICAO);
-        }
-
-        /// <summary>
-        /// Method called when METAR background workers is started. Pulls METAR from VATSIM METAR website.
-        /// </summary>
-        /// <param name="sender">Object sender</param>
-        /// <param name="e">Event arguments</param>
-        private void metarBackgroundWorker_DoWork(object sender, DoWorkEventArgs e)
-        {
-            //Try to pull the METAR from http://metar.vatsim.net/metar.php.
-            try
-            {
-                //Request METAR.
-                WebRequest request = WebRequest.Create("http://metar.vatsim.net/metar.php?id=" + e.Argument);
-                WebResponse response = request.GetResponse();          
-
-                //Read METAR.
-                System.IO.StreamReader reader = new System.IO.StreamReader(response.GetResponseStream());
-                metar = reader.ReadToEnd();
-
-                //Remove spaces.
-                if (metar.StartsWith(e.Argument.ToString())) metar = metar.Trim();
-            }
-            catch (WebException)
-            {
-                MessageBox.Show("Unable to get the METAR from the Internet.\nPlease provide a METAR.", "Error");
-            }
-        }
-
-        /// <summary>
-        /// Method called when METAR background worker has completed its task. Sets pulled METAR from VATSIM METAR website into the metarTextBox.
-        /// </summary>
-        /// <param name="sender">Object sender</param>
-        /// <param name="e">Event arguments</param>
-        private void metarBackgroundWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
-        {
-            //Set pulled METAR in the METAR text box.
-            metarTextBox.Text = metar;
-
-            //If auto process METAR check box is checked, automatically process the METAR.
-            if (autoProcessMETARToolStripMenuItem.Checked && metar != null)
-                processMetarButton_Click(null, null);
-                        
-            //Re-enable the get METAR button.
-            getMetarButton.Enabled = true;
         }
 
         /// <summary>
@@ -224,37 +190,37 @@ namespace DutchVACCATISGenerator
         /// </summary>
         /// <param name="sender">Object sender</param>
         /// <param name="e">Event arguments</param>
-        private void processMetarButton_Click(object sender, EventArgs e)
+        public void ProcessMetarButton_Click(object sender, EventArgs e)
         {
             //Check if a METAR has been entered.
-            if (metarTextBox.Text.Trim().Equals(String.Empty))
+            if (MetarTextBox.Text.Trim().Equals(String.Empty))
             {
                 MessageBox.Show("No METAR fetched or entered.", "Error"); return;
             }
             //Check if entered METAR ICAO matches the selected ICAO tab.
-            else if (!metarTextBox.Text.Trim().StartsWith((ICAOTabControl.SelectedTab.Name)))
+            else if (!MetarTextBox.Text.Trim().StartsWith((ICAOTabControl.SelectedTab.Name)))
             {
                 MessageBox.Show("Selected ICAO tab does not match the ICAO of the entered METAR.", "Warning"); return;
             }
             //Get METAR from METAR text box.
-            else metar = metarTextBox.Text.Trim();
+            else Metar = MetarTextBox.Text.Trim();
 
             #region MILITARY CODES
             //If METAR contains military visibility code.
-            if (Regex.IsMatch(metar, @"(^|\s)BLU(\s|$)") || Regex.IsMatch(metar, @"(^|\s)WHT(\s|$)") || Regex.IsMatch(metar, @"(^|\s)GRN(\s|$)") || Regex.IsMatch(metar, @"(^|\s)YLO(\s|$)") || Regex.IsMatch(metar, @"(^|\s)AMB(\s|$)") || Regex.IsMatch(metar, @"(^|\s)RED(\s|$)") || Regex.IsMatch(metar, @"(^|\s)BLACK(\s|$)"))
+            if (Regex.IsMatch(Metar, @"(^|\s)BLU(\s|$)") || Regex.IsMatch(Metar, @"(^|\s)WHT(\s|$)") || Regex.IsMatch(Metar, @"(^|\s)GRN(\s|$)") || Regex.IsMatch(Metar, @"(^|\s)YLO(\s|$)") || Regex.IsMatch(Metar, @"(^|\s)AMB(\s|$)") || Regex.IsMatch(Metar, @"(^|\s)RED(\s|$)") || Regex.IsMatch(Metar, @"(^|\s)BLACK(\s|$)"))
             {
                 //Military visibility codes.
                 String[] militaryColors = new String[] { "BLU", "WHT", "GRN", "YLO", "AMB", "RED", "BLACK" };
 
                 //If METAR contains BECMG and TEMPO
-                if (metar.Contains("BECMG") && metar.Contains("TEMPO"))
+                if (Metar.Contains("BECMG") && Metar.Contains("TEMPO"))
                 {
-                    if (metar.IndexOf("BECMG") < metar.IndexOf("TEMPO"))
+                    if (Metar.IndexOf("BECMG") < Metar.IndexOf("TEMPO"))
                     {
                         //Check which military visibility code the METAR contains.
                         foreach (String militaryColor in militaryColors)
                         {
-                            if (Regex.IsMatch(metar, @"(^|\s)" + militaryColor + @"(\s|$)")) metarProcessor = new MetarProcessor(splitMetar(metar, militaryColor)[0].Trim() /* BASE METAR */, splitMetar(splitMetar(splitMetar(metar, militaryColor)[1].Trim(), "BECMG")[1].Trim(), "TEMPO")[1].Trim() /* TEMPO TREND */, splitMetar(splitMetar(splitMetar(metar, militaryColor)[1].Trim(), "BECMG")[1].Trim(), "TEMPO")[0].Trim() /* BECMG TREND */);
+                            if (Regex.IsMatch(Metar, @"(^|\s)" + militaryColor + @"(\s|$)")) metarProcessor = new MetarProcessor(splitMetar(Metar, militaryColor)[0].Trim() /* BASE METAR */, splitMetar(splitMetar(splitMetar(Metar, militaryColor)[1].Trim(), "BECMG")[1].Trim(), "TEMPO")[1].Trim() /* TEMPO TREND */, splitMetar(splitMetar(splitMetar(Metar, militaryColor)[1].Trim(), "BECMG")[1].Trim(), "TEMPO")[0].Trim() /* BECMG TREND */);
                         }
                     }
                     else
@@ -262,20 +228,20 @@ namespace DutchVACCATISGenerator
                         //Check which military visibility code the METAR contains.
                         foreach (String militaryColor in militaryColors)
                         {
-                            if (Regex.IsMatch(metar, @"(^|\s)" + militaryColor + @"(\s|$)")) metarProcessor = new MetarProcessor(splitMetar(metar, militaryColor)[0].Trim() /* BASE METAR */, splitMetar(splitMetar(splitMetar(metar, militaryColor)[1].Trim(), "TEMPO")[1].Trim(), "BECMG")[0].Trim() /* TEMPO TREND */, splitMetar(splitMetar(splitMetar(metar, militaryColor)[1].Trim(), "TEMPO")[1].Trim(), "BECMG")[1].Trim() /* BECMG TREND */);
+                            if (Regex.IsMatch(Metar, @"(^|\s)" + militaryColor + @"(\s|$)")) metarProcessor = new MetarProcessor(splitMetar(Metar, militaryColor)[0].Trim() /* BASE METAR */, splitMetar(splitMetar(splitMetar(Metar, militaryColor)[1].Trim(), "TEMPO")[1].Trim(), "BECMG")[0].Trim() /* TEMPO TREND */, splitMetar(splitMetar(splitMetar(Metar, militaryColor)[1].Trim(), "TEMPO")[1].Trim(), "BECMG")[1].Trim() /* BECMG TREND */);
                         }
                     }
                 }
                 //If METAR contains BECMG or TEMPO
-                else if (metar.Contains("BECMG") || metar.Contains("TEMPO"))
+                else if (Metar.Contains("BECMG") || Metar.Contains("TEMPO"))
                 {
                     //If METAR contains BECMG.
-                    if (metar.Contains("BECMG"))
+                    if (Metar.Contains("BECMG"))
                     {
                         //Check which military visibility code the METAR contains.
                         foreach (String militaryColor in militaryColors)
                         {
-                            if (Regex.IsMatch(metar, @"(^|\s)" + militaryColor + @"(\s|$)")) metarProcessor = new MetarProcessor(splitMetar(metar, militaryColor)[0].Trim() /* BASE METAR */, splitMetar(splitMetar(metar, militaryColor)[1].Trim(), "BECMG")[1].Trim() /* BECMG TREND */, MetarType.BECMG);
+                            if (Regex.IsMatch(Metar, @"(^|\s)" + militaryColor + @"(\s|$)")) metarProcessor = new MetarProcessor(splitMetar(Metar, militaryColor)[0].Trim() /* BASE METAR */, splitMetar(splitMetar(Metar, militaryColor)[1].Trim(), "BECMG")[1].Trim() /* BECMG TREND */, MetarType.BECMG);
                         }
                     }
                     else
@@ -283,7 +249,7 @@ namespace DutchVACCATISGenerator
                         //Check which military visibility code the METAR contains.
                         foreach (String militaryColor in militaryColors)
                         {
-                            if (Regex.IsMatch(metar, @"(^|\s)" + militaryColor + @"(\s|$)")) metarProcessor = new MetarProcessor(splitMetar(metar, militaryColor)[0].Trim() /* BASE METAR */, splitMetar(splitMetar(metar, militaryColor)[1].Trim(), "TEMPO")[1].Trim() /* TEMPO TREND */, MetarType.TEMPO);
+                            if (Regex.IsMatch(Metar, @"(^|\s)" + militaryColor + @"(\s|$)")) metarProcessor = new MetarProcessor(splitMetar(Metar, militaryColor)[0].Trim() /* BASE METAR */, splitMetar(splitMetar(Metar, militaryColor)[1].Trim(), "TEMPO")[1].Trim() /* TEMPO TREND */, MetarType.TEMPO);
                         }
                     }
                 }
@@ -293,7 +259,7 @@ namespace DutchVACCATISGenerator
                     //Check which military visibility code the METAR contains.
                     foreach (String militaryColor in militaryColors)
                     {
-                        if (Regex.IsMatch(metar, @"(^|\s)" + militaryColor + @"(\s|$)")) metarProcessor = new MetarProcessor(splitMetar(metar, militaryColor)[0].Trim());
+                        if (Regex.IsMatch(Metar, @"(^|\s)" + militaryColor + @"(\s|$)")) metarProcessor = new MetarProcessor(splitMetar(Metar, militaryColor)[0].Trim());
                     }
                 }
             }
@@ -301,27 +267,27 @@ namespace DutchVACCATISGenerator
 
             #region BECMG AND TEMPO
             //If METAR contains both BECMG and TEMPO trends.
-            else if (metar.Contains("BECMG") && metar.Contains("TEMPO"))
+            else if (Metar.Contains("BECMG") && Metar.Contains("TEMPO"))
             {
                 //If BECMG is the first trend.
-                if (metar.IndexOf("BECMG") < metar.IndexOf("TEMPO")) metarProcessor = new MetarProcessor(splitMetar(metar, "BECMG")[0].Trim(), splitMetar(metar, "TEMPO")[1].Trim(), splitMetar(splitMetar(metar, "BECMG")[1].Trim(), "TEMPO")[0].Trim());
+                if (Metar.IndexOf("BECMG") < Metar.IndexOf("TEMPO")) metarProcessor = new MetarProcessor(splitMetar(Metar, "BECMG")[0].Trim(), splitMetar(Metar, "TEMPO")[1].Trim(), splitMetar(splitMetar(Metar, "BECMG")[1].Trim(), "TEMPO")[0].Trim());
                 //If TEMPO is the first trend.
-                else metarProcessor = new MetarProcessor(splitMetar(metar, "TEMPO")[0].Trim(), splitMetar(splitMetar(metar, "TEMPO")[1].Trim(), "BECMG")[0].Trim(), splitMetar(metar, "BECMG")[1].Trim());
+                else metarProcessor = new MetarProcessor(splitMetar(Metar, "TEMPO")[0].Trim(), splitMetar(splitMetar(Metar, "TEMPO")[1].Trim(), "BECMG")[0].Trim(), splitMetar(Metar, "BECMG")[1].Trim());
             }
             #endregion
 
             #region BECMG ONLY
             //If METAR only contains BECMG.
-            else if (metar.Contains("BECMG")) metarProcessor = new MetarProcessor(splitMetar(metar, "BECMG")[0].Trim(), splitMetar(metar, "BECMG")[1].Trim(), MetarType.BECMG);
+            else if (Metar.Contains("BECMG")) metarProcessor = new MetarProcessor(splitMetar(Metar, "BECMG")[0].Trim(), splitMetar(Metar, "BECMG")[1].Trim(), MetarType.BECMG);
             #endregion
 
             #region TEMPO ONLY
             //If METAR only contains TEMPO.
-            else if (metar.Contains("TEMPO")) metarProcessor = new MetarProcessor(splitMetar(metar, "TEMPO")[0].Trim(), splitMetar(metar, "TEMPO")[1].Trim(), MetarType.TEMPO);
+            else if (Metar.Contains("TEMPO")) metarProcessor = new MetarProcessor(splitMetar(Metar, "TEMPO")[0].Trim(), splitMetar(Metar, "TEMPO")[1].Trim(), MetarType.TEMPO);
             #endregion
 
             //Process non trend containing METAR.
-            else metarProcessor = new MetarProcessor(metar);
+            else metarProcessor = new MetarProcessor(Metar);
 
             //Calculate the transition level.
             try
@@ -332,10 +298,10 @@ namespace DutchVACCATISGenerator
             {
                 MessageBox.Show("Error parsing the METAR, check if METAR is in correct format.", "Error"); return;
             }
-            
+
             //Clear output and METAR text box.
             outputTextBox.Clear();
-            metarTextBox.Clear();
+            MetarTextBox.Clear();
 
             //Checks if ATIS index has to be increased.
             if (!(userLetterSelection | randomLetter | icaoTabSwitched | (lastLabel.Text == string.Empty)))
@@ -350,12 +316,12 @@ namespace DutchVACCATISGenerator
             randomLetter = userLetterSelection = icaoTabSwitched = false;
 
             //Set processed METAR in last processed METAR label.
-            if (metar.Length > 140)
-                lastLabel.Text = "Last successful processed METAR:\n" + metar.Substring(0, 69).Trim() + "\n" + metar.Substring(69, 69).Trim() + "...";
-            else if (metar.Length > 69) 
-                lastLabel.Text = "Last successful processed METAR:\n" + metar.Substring(0, 69).Trim() + "\n" + metar.Substring(69).Trim();
-            else 
-                lastLabel.Text = "Last successful processed METAR:\n" + metar;
+            if (Metar.Length > 140)
+                lastLabel.Text = "Last successful processed METAR:\n" + Metar.Substring(0, 69).Trim() + "\n" + Metar.Substring(69, 69).Trim() + "...";
+            else if (Metar.Length > 69)
+                lastLabel.Text = "Last successful processed METAR:\n" + Metar.Substring(0, 69).Trim() + "\n" + Metar.Substring(69).Trim();
+            else
+                lastLabel.Text = "Last successful processed METAR:\n" + Metar;
 
             //Set ATIS letter in ATIS letter label.
             atisLetterLabel.Text = phoneticAlphabet[atisIndex];
@@ -558,7 +524,7 @@ namespace DutchVACCATISGenerator
 
             foreach (String digit in splitArray)
             {
-                if(!string.IsNullOrEmpty(digit))
+                if (!string.IsNullOrEmpty(digit))
                     atisSamples.Add(digit);
             }
 
@@ -851,24 +817,33 @@ namespace DutchVACCATISGenerator
 
                             while (index != length)
                             {
-                                if (!(length - index == 2))
-                                    output += phenomenaToFullSpelling(metarPhenomena.phenomena.Substring(index, 2));
-
+                                if (length - index != 2)
+                                {
+                                    output += metarPhenomena.phenomena.Substring(index, 2).PhenomenaToFullSpelling();
+                                    atisSamples.Add(metarPhenomena.phenomena.Substring(index, 2));
+                                }
                                 else
-                                    output += phenomenaToFullSpelling(metarPhenomena.phenomena.Substring(index));
+                                {
+                                    output += metarPhenomena.phenomena.Substring(index).PhenomenaToFullSpelling();
+                                    atisSamples.Add(metarPhenomena.phenomena.Substring(index));
+                                }
 
                                 index = index + 2;
                             }
                         }
                     }
                     //If phenomena is 2 char phenomena.
-                    else output += phenomenaToFullSpelling(metarPhenomena.phenomena);
-
+                    else
+                    {
+                        output += metarPhenomena.phenomena.PhenomenaToFullSpelling();
+                        atisSamples.Add(metarPhenomena.phenomena);
+                    }
+                    
                     //If loop phenomena is not the last phenomena of the list, add [and].
                     if (metarPhenomena != (MetarPhenomena)Convert.ChangeType(input.Last(), typeof(MetarPhenomena)))
                     {
                         atisSamples.Add("and");
-                        output += " [AND]";
+                        output += " AND";
                     }
                 }
             }
@@ -939,7 +914,7 @@ namespace DutchVACCATISGenerator
 
                     atisSamples.Add("ft");
                     output += " FEET";
-    
+
                     //If cloud type has addition (e.g. CB, TCU).
                     if (metarCloud.addition != null) output += cloudAddiationToFullSpelling(metarCloud.addition);
                 }
@@ -954,142 +929,9 @@ namespace DutchVACCATISGenerator
         /// </summary>
         /// <param name="cloudType"></param>
         /// <returns></returns>
-        private string phenomenaToFullSpelling(string cloudType)
-        {
-            switch(cloudType)
-            {
-                case "BC":
-                    atisSamples.Add("bc");
-                    return " PATCHES";
-
-                //TODO GET SAMPLE
-                case "BL":
-                    return " BLOWING";
-
-                case "BR":
-                    atisSamples.Add("br");
-                    return " MIST";
-
-                //TODO GET SAMPLE
-                case "DR":
-                    return " LOW DRIFTING";
-
-                //TODO GET SAMPLE
-                case "DS":
-                    return " DUSTSTORM";
-
-                //TODO GET SAMPLE
-                case "DU":
-                    return " WIDESPREAD DUST";
-
-                case "DZ":
-                    atisSamples.Add("dz");
-                    return " DRIZZLE";
-
-                //TODO GET SAMPLE
-                case "FC":
-                    return " FUNNEL CLOUD";
-
-                case "FG":
-                    atisSamples.Add("fg");
-                    return " FOG";
-
-                //TODO GET SAMPLE
-                case "FU":
-                    return " SMOKE";
-
-                case "FZ":
-                    atisSamples.Add("fz");
-                    return " FREEZING";
-
-                case "GR":
-                    atisSamples.Add("gr");
-                    return " HAIL";
-
-                case "GS":
-                    atisSamples.Add("gs");
-                    return " SOFT HAIL";
-
-                case "HZ":
-                    atisSamples.Add("hz");
-                    return " HAZE";
-
-                //TODO GET SAMPLE
-                case "IC":
-                    return " ICE CRYSTALS";
-
-                case "MI":
-                    atisSamples.Add("mi");
-                    return " SHALLOW";
-
-                //TODO GET SAMPLE
-                case "PL":
-                    return " ICE PELLETS";
-
-                //TODO GET SAMPLE
-                case "PO":
-                    return " DUST";
-
-                //TODO GET SAMPLE
-                case "PR":
-                    return " PARTIAL";
-
-                //TODO GET SAMPLE
-                case "PY":
-                    return " SPRAY";
-
-                case "RA":
-                    atisSamples.Add("ra");
-                    return " RAIN";
-
-                //TODO GET SAMPLE
-                case "SA":
-                    return " SAND";
-
-                case "SG":
-                    atisSamples.Add("sg");
-                    return " SNOW GRAINS";
-
-                case "SH":
-                    atisSamples.Add("sh");
-                    return " SHOWERS";
-
-                case "SN":
-                    atisSamples.Add("sn");
-                    return " SNOW";
-
-                //TODO GET SAMPLE
-                case "SS":
-                    return " SANDSTORM";
-
-                //TODO GET SAMPLE
-                case "SQ":
-                    return " SQUALL";
-
-                case "TS":
-                    atisSamples.Add("ts");
-                    return " THUNDERSTORMS";
-
-                //TODO GET SAMPLE
-                case "UP":
-                    return " UNKOWN PRECIPITATION";
-
-                //TODO GET SAMPLE
-                case "VA":
-                    return " VOLCANIC ASH";
-            }
-
-            return string.Empty;
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="cloudType"></param>
-        /// <returns></returns>
         private string cloudTypeToFullSpelling(string cloudType)
         {
-            switch(cloudType)
+            switch (cloudType)
             {
                 case "FEW":
                     atisSamples.Add("few");
@@ -1118,7 +960,7 @@ namespace DutchVACCATISGenerator
         /// <returns></returns>
         private string cloudAddiationToFullSpelling(string addition)
         {
-            switch(addition)
+            switch (addition)
             {
                 case "CB":
                     atisSamples.Add("cb");
@@ -1131,7 +973,7 @@ namespace DutchVACCATISGenerator
 
             return string.Empty;
         }
-        
+
         /// <summary>
         /// Generate visibility output.
         /// </summary>
@@ -1148,7 +990,7 @@ namespace DutchVACCATISGenerator
                 atisSamples.Add("<");
                 addIndividualDigitsToATISSamples("800");
                 atisSamples.Add("meters");
-                
+
                 output += " LESS THAN 8 HUNDRED METERS";
             }
             //If visibility is lower than 1000 meters (add hundred).
@@ -1168,7 +1010,7 @@ namespace DutchVACCATISGenerator
                 addIndividualDigitsToATISSamples(Convert.ToString((input % 1000) / 100));
                 atisSamples.Add("hundred");
                 atisSamples.Add("meters");
-                
+
                 output += " " + Convert.ToString(input / 1000) + " THOUSAND " + Convert.ToString((input % 1000) / 100) + " HUNDRED METERS";
             }
             //If visibility is >= 9999 (10 km phrase).
@@ -1361,7 +1203,7 @@ namespace DutchVACCATISGenerator
                     }
 
                     return true;
-                #endregion
+                    #endregion
             }
 
             return false;
@@ -1408,7 +1250,7 @@ namespace DutchVACCATISGenerator
                     //If the EHAM main departure runway check box is checked, generate runway output with the value from the EHAM main departure runway combo box.
                     if (EHAMmainDepartureRunwayCheckBox.Checked && !EHAMmainLandingRunwayComboBox.Text.Equals(EHAMmainDepartureRunwayComboBox.Text))
                     {
-                        atisSamples.Add("mtrwy"); 
+                        atisSamples.Add("mtrwy");
                         output += runwayToOutput(" MAIN TAKEOFF RUNWAY", EHAMmainDepartureRunwayComboBox);
                     }
                     #endregion
@@ -1470,12 +1312,12 @@ namespace DutchVACCATISGenerator
                         output += runwayToOutput(" MAIN LANDING RUNWAY", EHRDmainRunwayComboBox);
                     }
                     break;
-                #endregion
+                    #endregion
             }
 
             return output;
         }
-        
+
         /// <summary>
         /// Method called when generate ATIS button is clicked. Processes field from MetarProcessor to output string.
         /// </summary>
@@ -1529,13 +1371,13 @@ namespace DutchVACCATISGenerator
                 case "EHRD":
                     atisSamples.Add("ehrdatis");
                     output += "THIS IS ROTTERDAM INFORMATION";
-                break;
+                    break;
             }
             #endregion
 
             #region ATIS LETTER
             //Add ATIS letter to output
-            output += atisLetterToFullSpelling(phoneticAlphabet[atisIndex]);
+            output += " " + phoneticAlphabet[atisIndex].AtisLetterToFullSpelling();
             #endregion
 
             atisSamples.Add("pause");
@@ -1579,7 +1421,7 @@ namespace DutchVACCATISGenerator
                 output += " CAVOK";
             }
             #endregion
-            
+
             #region VISIBILITY
             //If processed METAR has a visibility greater than 0, generate and add visibility output to output. 
             if (metarProcessor.metar.Visibility > 0) output += visibilityToOutput(metarProcessor.metar.Visibility);
@@ -1611,7 +1453,7 @@ namespace DutchVACCATISGenerator
             {
                 atisSamples.Add("sc");
                 output += " NO SIGNIFICANT CLOUDS";
-            } 
+            }
             #endregion
 
             #region CLOUDS
@@ -1767,7 +1609,7 @@ namespace DutchVACCATISGenerator
                 #endregion
             }
             #endregion
-          
+
             #region BECMG
             //If processed METAR has e BECMG trend.
             if (metarProcessor.metar.metarBECMG != null)
@@ -1864,12 +1706,12 @@ namespace DutchVACCATISGenerator
                 output += " CONTACT APPROACH AND ARRIVAL CALLSIGN ONLY";
             }
             #endregion
-            
+
             #region END
             //Add end to output.
             atisSamples.Add("end");
             output += " END OF INFORMATION";
-            output += atisLetterToFullSpelling(phoneticAlphabet[atisIndex]);
+            output += " " + phoneticAlphabet[atisIndex].AtisLetterToFullSpelling();
             #endregion
 
             #region USER WAVE
@@ -1886,20 +1728,20 @@ namespace DutchVACCATISGenerator
             //Set generated ATIS output in output text box.
             outputTextBox.Text = output;
 
-            #region DEBUG
-            //Console.WriteLine();
+#if DEBUG
+            Console.WriteLine();
 
-            //foreach (String temp in atisSamples)
-            //{
-            //    if (temp.All(Char.IsDigit))
-            //        Console.Write(temp);
+            foreach (var sample in atisSamples)
+            {
+                if (sample.All(char.IsDigit))
+                    Console.Write(sample);
 
-            //    else
-            //        Console.Write("[" + temp + "]");
-            //}
+                else
+                    Console.Write("[" + sample + "]");
+            }
 
-            //Console.WriteLine();
-            #endregion
+            Console.WriteLine();
+#endif
 
             //Build ATIS file.
             sound.buildAtis(atisSamples);
@@ -1981,7 +1823,7 @@ namespace DutchVACCATISGenerator
             {
                 if (taf.tafBackgroundWorker.IsBusy)
                     taf.tafBackgroundWorker.CancelAsync();
-                    
+
                 taf.tafBackgroundWorker.RunWorkerAsync();
             }
             #endregion
@@ -1991,10 +1833,10 @@ namespace DutchVACCATISGenerator
             #endregion
 
             //Set phonetic alphabet.
-            setPhoneticAlphabet();
+            SetPhoneticAlphabet();
 
             //Set ATIS index and label.
-            randomizeATISLetter();     
+            RandomizeATISLetter();
         }
 
         /// <summary>
@@ -2019,7 +1861,7 @@ namespace DutchVACCATISGenerator
         private void metarTextBox_TextChanged(object sender, EventArgs e)
         {
             //If METAR text box contains text, enable process METAR button.
-            if (metarTextBox.Text.Trim().Equals(String.Empty)) processMetarButton.Enabled = false;
+            if (MetarTextBox.Text.Trim().Equals(String.Empty)) processMetarButton.Enabled = false;
 
             //If METAR text box doesn't contain text, disable process METAR button.
             else processMetarButton.Enabled = true;
@@ -2067,7 +1909,7 @@ namespace DutchVACCATISGenerator
                 //Hide runwayInfo form.
                 if (runwayInfo != null && !runwayInfo.IsDisposed) runwayInfo.Visible = false;
                 //Hide sound form.
-                 if (sound != null && !sound.IsDisposed) sound.Visible = false;
+                if (sound != null && !sound.IsDisposed) sound.Visible = false;
             }
         }
 
@@ -2082,319 +1924,6 @@ namespace DutchVACCATISGenerator
         }
 
         /// <summary>
-        /// Method called when version background workers is started. Pulls latest version number from my site.
-        /// </summary>
-        /// <param name="sender">Object sender</param>
-        /// <param name="e">Event arguments</param>
-        private void versionBackgroundWorker_DoWork(object sender, DoWorkEventArgs e)
-        {   
-            try
-            {
-                //Request latest version.
-                WebRequest request = WebRequest.Create("http://daanbroekhuizen.com/Dutch VACC/Dutch VACC ATIS Generator/Version/version.php");
-                WebResponse response = request.GetResponse();
-
-                //Read latest version.
-                System.IO.StreamReader reader = new System.IO.StreamReader(response.GetResponseStream());
-                latestVersion = reader.ReadToEnd();
-
-                //Trim latest version string.
-                latestVersion.Trim();
-            }
-            catch (WebException)
-            {
-                return;
-            }
-            catch (Exception)
-            {
-                return;
-            }
-        }
-
-        /// <summary>
-        /// Method called when version background worker has completed its task. Compares executable version with pulled latest version and gives a message if a newer version is available.
-        /// </summary>
-        /// <param name="sender">Object sender</param>
-        /// <param name="e">Event arguments</param>
-        private void versionBackgroundWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
-        {
-            //If a latest version has been pulled.
-            if(latestVersion != null && !latestVersion.Equals(String.Empty))
-            {
-                //If a newer version is available.
-                if(!latestVersion.Equals(FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion.Trim()))
-                {
-                    while(latestVersion.Contains("."))
-                    {
-                        latestVersion = latestVersion.Remove(latestVersion.IndexOf("."), 1);
-                    }
-
-                    string applicationVersion = FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion.Trim();
-
-                    while (applicationVersion.Contains("."))
-                    {
-                        applicationVersion = applicationVersion.Remove(applicationVersion.IndexOf("."), 1);
-                    }
-
-                    if (Convert.ToInt32(latestVersion) > Convert.ToInt32(applicationVersion))
-                    {
-                        if (MessageBox.Show("Newer version is available.\nDownload latest version?", "Message", MessageBoxButtons.YesNo, MessageBoxIcon.Asterisk) == DialogResult.Yes)
-                        {
-                            Form autoUpdater = new AutoUpdater();
-                            autoUpdater.ShowDialog();
-                        }
-                    }
-                }
-            }
-        }
-
-        /// <summary>
-        /// Method called when real runway background workers is started. Gets the real EHAM runway configuration.
-        /// </summary>
-        /// <param name="sender">Object sender</param>
-        /// <param name="e">Event arguments</param>
-        private void realRunwayBackgroundWorker_DoWork(object sender, DoWorkEventArgs e)
-        {            	
-            //Initialize runway list to get rid of previous stored runways.
-            departureRunways = new List<String>();
-            landingRunways = new List<String>();
-
-            try
-            {
-                //Create web client.
-                WebClient client = new WebClient();
-                
-                //Set user Agent, make the site think we're not a bot.
-                client.Headers[HttpRequestHeader.UserAgent] = "Mozilla/5.0"; //(Windows; U; Windows NT 6.1; en-US; rv:1.9.2.4) Gecko/20100611 Firefox/3.6.4";
-
-                //Make web request to http://www.lvnl.nl/nl/airtraffic.
-                string data = client.DownloadString("http://www.lvnl.nl/nl/airtraffic");
-            
-                #region Remove redundant HTML code.
-                try
-                {
-                    data = data.Split(new string[] { "<ul id=\"runwayVisual\">" }, StringSplitOptions.None)[1].Split(new string[] {"</ul>"} , StringSplitOptions.None)[0];
-                }
-                catch(Exception) { }
-                #endregion
-
-                //If received data contains HTML <li> tag.
-                while (data.Contains("<li"))
-                {
-                    //Get <li>...</lI>
-                    String runwayListItem = data.Substring(data.IndexOf("<li"), (data.IndexOf("</li>") + "</li>".Length) - data.IndexOf("<li"));
-
-                    //If found list item is landing runway.
-                    if (runwayListItem.Contains("class=\"lb"))
-                    {
-                        runwayListItem = runwayListItem.Substring(runwayListItem.IndexOf("class=\"lb") + "class=\"lb".Length, runwayListItem.Length - (runwayListItem.IndexOf("class=\"lb") + "class=\"lb".Length));
-                        landingRunways.Add(runwayListItem.Substring(0, runwayListItem.IndexOf("\">")));
-                    }
-                    //If found list item is departure runway.
-                    else if (runwayListItem.Contains("class=\"sb"))
-                    {
-                        runwayListItem = runwayListItem.Substring(runwayListItem.IndexOf("class=\"sb") + "class=\"sb".Length, runwayListItem.Length - (runwayListItem.IndexOf("class=\"sb") + "class=\"sb".Length));
-                        departureRunways.Add(runwayListItem = runwayListItem.Substring(0, runwayListItem.IndexOf("\">")));
-                    }
-
-                    //Remove list item from received data.
-                    data = data.Substring(data.IndexOf("</li>") + "</li>".Length, (data.Length - (data.IndexOf("</li>") + "</li>".Length)));
-                }
-            }
-            catch(Exception)
-            {
-                //Show error.
-                MessageBox.Show("Unable to get real EHAM runway combination from the Internet.", "Error");
-            }
-        }
-
-        /// <summary>
-        /// Method called when real runway background worker is completed.
-        /// </summary>
-        /// <param name="sender">Object sender</param>
-        /// <param name="e">Event arguments</param>
-        private void realRunwayBackgroundWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
-        {
-            //Clear runway combo boxes.
-            EHAMmainDepartureRunwayComboBox.Text = EHAMmainLandingRunwayComboBox.Text = EHAMsecondaryDepartureRunwayComboBox.Text = EHAMsecondaryLandingRunwayComboBox.Text = String.Empty;
-
-            //Only one departure runway found.
-            if (departureRunways.Count == 1)
-                EHAMmainDepartureRunwayComboBox.Text = departureRunways.First();
-
-            //Only one landing runway found.
-            if (landingRunways.Count == 1)
-                EHAMmainLandingRunwayComboBox.Text = landingRunways.First();
-
-            //Two or more landing or departure runways found.
-            if (landingRunways.Count > 1 || departureRunways.Count > 1)
-                processMultipleRunways();
-
-            //Re-enable get select best runway button.
-            getSelectBestRunwayButton.Enabled = true;
-
-            if (landingRunways.Count() > 0 || departureRunways.Count > 0)
-                MessageBox.Show("Controller notice! Verify auto selected runway(s).", "Warning");
-        }
-
-        /// <summary>
-        /// Process if multiple runways we're found and set the runway selection boxes with the founded values.
-        /// </summary>
-        private void processMultipleRunways()
-        {
-            #region LANDING RUNWAYS
-            //If there are more than two landing runways.
-            if (landingRunways.Count > 1)
-            {
-                String firstRunway = landingRunways.First();
-                String secondRunway = landingRunways.Last();
-
-                //Generate landing runway combinations list.
-                List<Tuple<String, String>> landingRunwayCombinations = new List<Tuple<String, String>>()
-                {
-                    /* 06 combinations */
-                    { new Tuple<String, String>("06", "18R")},
-                    { new Tuple<String, String>("06", "36R")},
-                    { new Tuple<String, String>("06", "18C")},
-                    { new Tuple<String, String>("06", "36C")},
-                    { new Tuple<String, String>("06", "27")},
-                    { new Tuple<String, String>("06", "22")},
-                    { new Tuple<String, String>("06", "09")},
-                    { new Tuple<String, String>("06", "04")},
-                    /* 18R combinations */
-                    { new Tuple<String, String>("18R", "36R")},
-                    { new Tuple<String, String>("18R", "18C")},
-                    { new Tuple<String, String>("18R", "36C")},
-                    { new Tuple<String, String>("18R", "27")},
-                    { new Tuple<String, String>("18R", "22")},
-                    { new Tuple<String, String>("18R", "24")},
-                    { new Tuple<String, String>("18R", "09")},
-                    { new Tuple<String, String>("18R", "04")},
-                    /* 36R combinations */
-                    { new Tuple<String, String>("36R", "18C")},
-                    { new Tuple<String, String>("36R", "36C")},
-                    { new Tuple<String, String>("36R", "27")},
-                    { new Tuple<String, String>("36R", "22")},
-                    { new Tuple<String, String>("36R", "24")},
-                    { new Tuple<String, String>("36R", "09")},
-                    { new Tuple<String, String>("36R", "04")},
-                    /* 18C combinations */
-                    { new Tuple<String, String>("18C", "27")},
-                    { new Tuple<String, String>("18C", "22")},
-                    { new Tuple<String, String>("18C", "24")},
-                    { new Tuple<String, String>("18C", "09")},
-                    { new Tuple<String, String>("18C", "04")},
-                    /* 36C combinations */
-                    { new Tuple<String, String>("36C", "27")},
-                    { new Tuple<String, String>("36C", "22")},
-                    { new Tuple<String, String>("36C", "24")},
-                    { new Tuple<String, String>("36C", "09")},
-                    { new Tuple<String, String>("36C", "04")},
-                    /* 27 combinations */
-                    { new Tuple<String, String>("27", "22")},
-                    { new Tuple<String, String>("27", "24")},
-                    { new Tuple<String, String>("27", "09")},
-                    { new Tuple<String, String>("27", "04")},
-                    /* 22 combinations */
-                    { new Tuple<String, String>("22", "24")},
-                    { new Tuple<String, String>("22", "09")},
-                    /* 24 combinations */
-                    { new Tuple<String, String>("24", "09")},
-                    { new Tuple<String, String>("24", "04")},
-                    /* 09 combinations */
-                    { new Tuple<String, String>("09", "04")},
-                };
-
-                //Check which runways are found and set the correct main and secondary landing runway.
-                foreach (Tuple<String, String> runwayCombination in landingRunwayCombinations)
-                {
-                    if ((firstRunway.Equals(runwayCombination.Item1) && secondRunway.Equals(runwayCombination.Item2)) || (firstRunway.Equals(runwayCombination.Item2) && secondRunway.Equals(runwayCombination.Item1)))
-                    {
-                        EHAMmainLandingRunwayComboBox.Text = runwayCombination.Item1;
-                        EHAMsecondaryLandingRunwayComboBox.Text = runwayCombination.Item2;
-                    }
-                }
-            }
-            #endregion
-
-            #region DEPARTURE RUNWAYS
-            //If there are more than two departure runways found.
-            if(departureRunways.Count > 1)
-            {
-                String firstRunway = departureRunways.First();
-                String secondRunway = departureRunways.Last();
-
-                //Generate departure runway combinations list.
-                List<Tuple<String, String>> departureRunwayCombinations = new List<Tuple<String, String>>()
-                {
-                    /* 36L combinations */
-                    { new Tuple<String, String>("36L", "24")},
-                    { new Tuple<String, String>("36L", "36C")},
-                    { new Tuple<String, String>("36L", "18L")},                    
-                    { new Tuple<String, String>("36L", "18C")},        
-                    { new Tuple<String, String>("36L", "09")}, 
-                    { new Tuple<String, String>("36L", "27")}, 
-                    { new Tuple<String, String>("36L", "06")}, 
-                    { new Tuple<String, String>("36L", "22")}, 
-                    { new Tuple<String, String>("36L", "04")}, 
-                    /* 24 combinations */
-                    { new Tuple<String, String>("24", "36C")},
-                    { new Tuple<String, String>("24", "18L")},
-                    { new Tuple<String, String>("24", "18C")},
-                    { new Tuple<String, String>("24", "09")},
-                    { new Tuple<String, String>("24", "27")},
-                    { new Tuple<String, String>("24", "22")},
-                    { new Tuple<String, String>("24", "04")},
-                    /* 36C combinations */
-                    { new Tuple<String, String>("36C", "18L")},
-                    { new Tuple<String, String>("36C", "09")},
-                    { new Tuple<String, String>("36C", "27")},
-                    { new Tuple<String, String>("36C", "06")},
-                    { new Tuple<String, String>("36C", "22")},
-                    { new Tuple<String, String>("36C", "04")},
-                    /* 18L combinations */
-                    { new Tuple<String, String>("18L", "18C")},
-                    { new Tuple<String, String>("18L", "09")},
-                    { new Tuple<String, String>("18L", "27")},
-                    { new Tuple<String, String>("18L", "06")},
-                    { new Tuple<String, String>("18L", "22")},
-                    { new Tuple<String, String>("18L", "04")},
-                    /* 18C combinations */
-                    { new Tuple<String, String>("18C", "09")},
-                    { new Tuple<String, String>("18C", "27")},
-                    { new Tuple<String, String>("18C", "06")},
-                    { new Tuple<String, String>("18C", "22")},
-                    { new Tuple<String, String>("18C", "04")},
-                    /* 09 combinations */
-                    { new Tuple<String, String>("09", "27")},
-                    { new Tuple<String, String>("09", "06")},
-                    { new Tuple<String, String>("09", "22")},
-                    { new Tuple<String, String>("09", "04")},
-                    /* 27 combinations */
-                    { new Tuple<String, String>("27", "06")},
-                    { new Tuple<String, String>("27", "22")},
-                    { new Tuple<String, String>("27", "04")},
-                    /* 06 combinations */
-                    { new Tuple<String, String>("06", "22")},
-                    { new Tuple<String, String>("06", "04")},
-                    /* 22 combinations */
-                    { new Tuple<String, String>("22", "04")},
-                };
-
-                //Check which runways are found and set the correct main and secondary departure runway.
-                foreach (Tuple<String, String> runwayCombination in departureRunwayCombinations)
-                {
-                    if ((firstRunway.Equals(runwayCombination.Item1) && secondRunway.Equals(runwayCombination.Item2)) || (firstRunway.Equals(runwayCombination.Item2) && secondRunway.Equals(runwayCombination.Item1)))
-                    {
-                        EHAMmainDepartureRunwayComboBox.Text = runwayCombination.Item1;
-                        EHAMsecondaryDepartureRunwayComboBox.Text = runwayCombination.Item2;
-                    }
-                }
-            }
-            #endregion
-        }
-
-        /// <summary>
         /// Method called hen runway info tool strip menu item is clicked.
         /// </summary>
         /// <param name="sender">Object sender</param>
@@ -2403,7 +1932,7 @@ namespace DutchVACCATISGenerator
         {
             setRunwayInfoForm();
         }
-        
+
         /// <summary>
         /// Method called hen sound tool strip menu item is clicked.
         /// </summary>
@@ -2422,7 +1951,7 @@ namespace DutchVACCATISGenerator
         private void amsterdamInfoToolStripMenuItem_Click(object sender, EventArgs e)
         {
             //Open Amsterdam Info page of the Dutch VACC site.
-             System.Diagnostics.Process.Start("http://www.dutchvacc.nl/index.php?option=com_content&view=article&id=127&Itemid=70");
+            System.Diagnostics.Process.Start("http://www.dutchvacc.nl/index.php?option=com_content&view=article&id=127&Itemid=70");
         }
 
         /// <summary>
@@ -2630,7 +2159,7 @@ namespace DutchVACCATISGenerator
             //Save setting.
             Properties.Settings.Default.Save();
 
-            if(autoFetchMETARToolStripMenuItem.Checked)
+            if (autoFetchMETARToolStripMenuItem.Checked)
             {
                 //Set new time to check to
                 timerEnabled = DateTime.UtcNow;
@@ -2660,12 +2189,12 @@ namespace DutchVACCATISGenerator
         private void autoProcessMETARToolStripMenuItem_CheckedChanged(object sender, EventArgs e)
         {
             //Write value to settings.
-            Properties.Settings.Default.autoprocess = autoProcessMETARToolStripMenuItem.Checked;
+            Properties.Settings.Default.autoprocess = AutoProcessMETARToolStripMenuItem.Checked;
 
             //Save setting.
             Properties.Settings.Default.Save();
 
-            if (autoProcessMETARToolStripMenuItem.Checked && autoLoadEHAMRunwayToolStripMenuItem.Checked)
+            if (AutoProcessMETARToolStripMenuItem.Checked && autoLoadEHAMRunwayToolStripMenuItem.Checked)
                 autoGenerateATISToolStripMenuItem.Enabled = true;
 
             else
@@ -2675,11 +2204,11 @@ namespace DutchVACCATISGenerator
         /// <summary>
         /// Load application settings from INI file.
         /// </summary>
-        private void loadSettings()
+        private void LoadSettings()
         {
             //Load settings.
             autoFetchMETARToolStripMenuItem.Checked = Properties.Settings.Default.autofetch;
-            autoProcessMETARToolStripMenuItem.Checked = Properties.Settings.Default.autoprocess;
+            AutoProcessMETARToolStripMenuItem.Checked = Properties.Settings.Default.autoprocess;
             autoLoadEHAMRunwayToolStripMenuItem.Checked = Properties.Settings.Default.autoloadrunways;
             autoGenerateATISToolStripMenuItem.Checked = Properties.Settings.Default.autogenerateatis;
             ehamToolStripMenuItem.Checked = Properties.Settings.Default.eham;
@@ -2697,7 +2226,7 @@ namespace DutchVACCATISGenerator
         {
             //Update fetch METAR label.
             fetchMetarLabel.Text = "Fetching METAR in: " + (30 - (DateTime.UtcNow - timerEnabled).Minutes) + " minutes.";
-            
+
             //If 30 minutes have passed, update the METAR.
             if ((DateTime.UtcNow - timerEnabled).Minutes > 29)
             //if ((DateTime.UtcNow - timerEnabled).Seconds > 10)
@@ -2714,7 +2243,7 @@ namespace DutchVACCATISGenerator
                     }
                     catch (Exception) { }
                 }
-                
+
                 //Play notification sound.
                 if (playSoundWhenMETARIsFetchedToolStripMenuItem.Checked)
                 {
@@ -2741,8 +2270,8 @@ namespace DutchVACCATISGenerator
             //Save setting.
             Properties.Settings.Default.Save();
 
-            if (autoLoadEHAMRunwayToolStripMenuItem.Checked && autoProcessMETARToolStripMenuItem.Checked)
-                    autoGenerateATISToolStripMenuItem.Enabled = true;
+            if (autoLoadEHAMRunwayToolStripMenuItem.Checked && AutoProcessMETARToolStripMenuItem.Checked)
+                autoGenerateATISToolStripMenuItem.Enabled = true;
 
             else
                 autoGenerateATISToolStripMenuItem.Enabled = autoGenerateATISToolStripMenuItem.Checked = false;
@@ -2771,10 +2300,10 @@ namespace DutchVACCATISGenerator
             {
                 generateATISButton_Click(null, null);
             }
-            catch(Exception)
+            catch (Exception)
             {
                 MessageBox.Show("Unable to auto generate the ATIS.\nGenerate the ATIS manually.", "Error");
-            }    
+            }
         }
 
         /// <summary>
@@ -2798,7 +2327,7 @@ namespace DutchVACCATISGenerator
         /// <param name="e">Event arguments</param>
         private void ICAOTabControl_Selecting(object sender, TabControlCancelEventArgs e)
         {
-            if(metarBackgroundWorker.IsBusy)
+            if (metarBackgroundWorker.IsBusy)
                 e.Cancel = true;
         }
 
@@ -2830,7 +2359,7 @@ namespace DutchVACCATISGenerator
             Properties.Settings.Default.Save();
 
             //Set phonetic alphabet.
-            setPhoneticAlphabet();
+            SetPhoneticAlphabet();
         }
 
         /// <summary>
@@ -2847,7 +2376,7 @@ namespace DutchVACCATISGenerator
             Properties.Settings.Default.Save();
 
             //Set phonetic alphabet.
-            setPhoneticAlphabet();
+            SetPhoneticAlphabet();
         }
 
         /// <summary>
@@ -2867,7 +2396,7 @@ namespace DutchVACCATISGenerator
         /// <summary>
         /// Randomizes ATIS letter.
         /// </summary>
-        private void randomizeATISLetter()
+        private void RandomizeATISLetter()
         {
             //Random ATIS letter.
             if (randomLetterToolStripMenuItem.Checked)
@@ -2888,179 +2417,38 @@ namespace DutchVACCATISGenerator
         /// <summary>
         /// Checks what phonetic alphabet to be set for ATIS generation.
         /// </summary>
-        private void setPhoneticAlphabet()
+        private void SetPhoneticAlphabet()
         {
             //If selected tab is EHAM and EHAM (A - M) tool strip menu item is checked.
             if (ICAOTabControl.SelectedTab.Name.Equals("EHAM") && ehamToolStripMenuItem.Checked)
-                phoneticAlphabet = new List<String> { "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M" };
+                phoneticAlphabet = new List<string> { "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M" };
 
             //If selected tab is EHRD and EHRD (N - Z) tool strip menu item is checked.
             else if (ICAOTabControl.SelectedTab.Name.Equals("EHRD") && ehrdToolStripMenuItem.Checked)
-                phoneticAlphabet = new List<String> { "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z" };
+                phoneticAlphabet = new List<string> { "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z" };
 
             //Else set full phonetic alpha bet.
             else
-                phoneticAlphabet = new List<String> { "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z" };
+                phoneticAlphabet = new List<string> { "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z" };
 
             //If the current index is higher than the phonetic alphabet count (will cause exception!).
             if (atisIndex > phoneticAlphabet.Count)
                 atisIndex = phoneticAlphabet.Count - 1;
         }
-        
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="atisLetter"></param>
-        /// <returns></returns>
-        private string atisLetterToFullSpelling(string atisLetter)
+
+        private void addIndividualDigitsToATISSamples(string input)
         {
-            switch (atisLetter)
-            {
-                case "A":
-                    atisSamples.Add("a");
-                    return " ALPHA";
+            var processed = Regex.Split(input, @"([0-9])");
 
-                case "B":
-                    atisSamples.Add("b");
-                    return " BRAVO";
-
-                case "C":
-                    atisSamples.Add("c");
-                    return " CHARLIE";
-
-                case "D":
-                    atisSamples.Add("d");
-                    return " DELTA";
-
-                case "E":
-                    atisSamples.Add("e");
-                    return " ECHO";
-
-                case "F":
-                    atisSamples.Add("f");
-                    return " FOXTROT";
-
-                case "G":
-                    atisSamples.Add("g");
-                    return " GOLF";
-
-                case "H":
-                    atisSamples.Add("h");
-                    return " HOTEL";
-
-                case "I":
-                    atisSamples.Add("i");
-                    return " INDIA";
-
-                case "J":
-                    atisSamples.Add("j");
-                    return " JULIET";
-
-                case "K":
-                    atisSamples.Add("k");
-                    return " KILO";
-
-                case "L":
-                    atisSamples.Add("l");
-                    return " LIMA";
-
-                case "M":
-                    atisSamples.Add("m");
-                    return " MIKE";
-
-                case "N":
-                    atisSamples.Add("n");
-                    return " NOVEMBER";
-
-                case "O":
-                    atisSamples.Add("o");
-                    return " OSCAR";
-
-                case "P":
-                    atisSamples.Add("p");
-                    return " PAPA";
-
-                case "Q":
-                    atisSamples.Add("q");
-                    return " QUEBEC";
-
-                case "R":
-                    atisSamples.Add("r");
-                    return " ROMEO";
-
-                case "S":
-                    atisSamples.Add("s");
-                    return " SIERRA";
-
-                case "T":
-                    atisSamples.Add("t");
-                    return " TANGO";
-
-                case "U":
-                    atisSamples.Add("u");
-                    return " UNIFORM";
-
-                case "V":
-                    atisSamples.Add("v");
-                    return " VICTOR";
-
-                case "W":
-                    atisSamples.Add("w");
-                    return " WHISKEY";
-
-                case "X":
-                    atisSamples.Add("x");
-                    return " XRAY";
-
-                case "Y":
-                    atisSamples.Add("y");
-                    return " YANKEE";
-
-                case "Z":
-                    atisSamples.Add("z");
-                    return " ZULU";
-            }
-
-            return String.Empty;
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="input"></param>
-        private void addIndividualDigitsToATISSamples(String input)
-        {
-            String[] processed = Regex.Split(input, @"([0-9])");
-
-            foreach (String digit in processed)
+            foreach (var digit in processed)
             {
                 if (!string.IsNullOrEmpty(digit))
                     atisSamples.Add(digit);
             }
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void dutchVACCATISGeneratorV2ManualToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            try
-            {
-                Process.Start(Application.StartupPath + "\\manuals\\Handleiding Dutch VACC ATIS Generator v2.pdf");
-            }
-            catch (Exception)
-            {
-                MessageBox.Show("Unable to open ATC Operational Information manual.", "Error"); return;
-            }
-        }
+        #region Form events
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
         private void atcOperationalInformationManualToolStripMenuItem_Click(object sender, EventArgs e)
         {
             try
@@ -3069,8 +2457,56 @@ namespace DutchVACCATISGenerator
             }
             catch (Exception)
             {
-                MessageBox.Show("Unable to open ATC Operational Information manual.", "Error"); return;
+                MessageBox.Show("Unable to open ATC Operational Information manual.", "Error");
             }
         }
+
+        private void dutchVACCATISGeneratorV2ManualToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                Process.Start(Application.StartupPath + "\\manuals\\Handleiding Dutch VACC ATIS Generator v2.pdf");
+            }
+            catch (Exception)
+            {
+                MessageBox.Show("Unable to open ATC Operational Information manual.", "Error");
+            }
+        }
+
+        #region Worker events
+
+        private void metarBackgroundWorker_DoWork(object sender, DoWorkEventArgs e)
+        {
+            _metarWorker.MetarBackgroundWorker_DoWork(sender, e);
+        }
+
+        private void metarBackgroundWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+        {
+            _metarWorker.MetarBackgroundWorker_RunWorkerCompleted(sender, e);
+        }
+
+        private void versionBackgroundWorker_DoWork(object sender, DoWorkEventArgs e)
+        {
+            _versionWorker.VersionBackgroundWorker_DoWork(sender, e);
+        }
+
+        private void versionBackgroundWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+        {
+            _versionWorker.VersionBackgroundWorker_RunWorkerCompleted(sender, e);
+        }
+
+        private void realRunwayBackgroundWorker_DoWork(object sender, DoWorkEventArgs e)
+        {
+            _realRunwayWorker.RealRunwayBackgroundWorker_DoWork(sender, e);
+        }
+
+        private void realRunwayBackgroundWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+        {
+            _realRunwayWorker.RealRunwayBackgroundWorker_RunWorkerCompleted(sender, e);
+        }
+
+        #endregion
+
+        #endregion
     }
 }

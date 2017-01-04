@@ -2,7 +2,7 @@
 using System.Linq;
 using System.Text.RegularExpressions;
 
-namespace DutchVACCATISGenerator
+namespace DutchVACCATISGenerator.Types.Metar
 {
     /// <summary>
     /// MetarProcessor class. Processes string METAR to usable fields in a METAR instance.

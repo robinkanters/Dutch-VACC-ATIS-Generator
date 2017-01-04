@@ -2,7 +2,7 @@
 using System.Reflection;
 using System.Windows.Forms;
 
-namespace DutchVACCATISGenerator
+namespace DutchVACCATISGenerator.Forms
 {
     /// <summary>
     /// About class.
@@ -24,14 +24,14 @@ namespace DutchVACCATISGenerator
         }
 
         /// <summary>
-        /// Method called when link label is clicked.
+        /// Called when link label is clicked.
         /// </summary>
         /// <param name="sender">Object sender.</param>
         /// <param name="e">Event arguments</param>
         private void dutchVACCLinkLabel_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
-            //Open default browser and open www.dutchvacc.nl URL.
-            System.Diagnostics.Process.Start(e.Link.LinkData.ToString());
+            //Opens the default browser with www.dutchvacc.nl URL.
+            Process.Start(e.Link.LinkData.ToString());
         }
     }
 }
