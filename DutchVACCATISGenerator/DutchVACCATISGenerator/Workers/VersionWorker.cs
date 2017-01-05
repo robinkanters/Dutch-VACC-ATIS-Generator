@@ -9,7 +9,24 @@ using DutchVACCATISGenerator.Forms;
 
 namespace DutchVACCATISGenerator.Workers
 {
-    public class VersionWorker
+    public interface IVersionWorker
+    {
+        /// <summary>
+        /// Method called when version background workers is started. Pulls latest version number from my site.
+        /// </summary>
+        /// <param name="sender">Object sender</param>
+        /// <param name="e">Event arguments</param>
+        void VersionBackgroundWorker_DoWork(object sender, DoWorkEventArgs e);
+
+        /// <summary>
+        /// Method called when version background worker has completed its task. Compares executable version with pulled latest version and gives a message if a newer version is available.
+        /// </summary>
+        /// <param name="sender">Object sender</param>
+        /// <param name="e">Event arguments</param>
+        void VersionBackgroundWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e);
+    }
+
+    public class VersionWorker : IVersionWorker
     {
         private string LatestVersion { get; set; }
 

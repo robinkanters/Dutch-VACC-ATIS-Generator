@@ -24,7 +24,7 @@ namespace DutchVACCATISGenerator.Forms
         private readonly MetarLogic _metarLogic;
         private readonly IMetarWorker _metarWorker;
         private readonly IRealRunwayWorker _realRunwayWorker;
-        private readonly VersionWorker _versionWorker;
+        private readonly IVersionWorker _versionWorker;
 
         /// <summary>
         ///     Constructor of DutchVACCATISGenerator.
@@ -973,7 +973,7 @@ namespace DutchVACCATISGenerator.Forms
             var result = (Tuple<List<string>, List<string>>) e.Result;
 
             var deparuteRunways = result.Item1;
-            var landingRunways = result.Item1;
+            var landingRunways = result.Item2;
 
             //Clear runway combo boxes.
             EHAMmainDepartureRunwayComboBox.SelectedIndex =

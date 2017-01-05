@@ -32,7 +32,7 @@ namespace DutchVACCATISGenerator.Workers
                 var response = request.GetResponse();
                 var reader = new StreamReader(response.GetResponseStream());
 
-                var metar = reader.ReadToEnd();
+                var metar = reader.ReadToEnd().Trim();
 
                 //Remove spaces.
                 if (metar.StartsWith(e.Argument.ToString()))
