@@ -5,15 +5,18 @@ using System.Windows.Forms;
 
 namespace DutchVACCATISGenerator.Workers
 {
-    public class MetarWorker
+    public interface IMetarWorker
     {
-        private readonly Forms.DutchVACCATISGenerator _dutchVACCATISGenerator;
+        /// <summary>
+        /// Method called when METAR background workers is started. Pulls METAR from VATSIM METAR website.
+        /// </summary>
+        /// <param name="sender">Object sender</param>
+        /// <param name="e">Event arguments</param>
+        void MetarBackgroundWorker_DoWork(object sender, DoWorkEventArgs e);
+    }
 
-        public MetarWorker(Forms.DutchVACCATISGenerator dutchVACCATISGenerator)
-        {
-            _dutchVACCATISGenerator = dutchVACCATISGenerator;
-        }
-
+    public class MetarWorker : IMetarWorker
+    {
         /// <summary>
         /// Method called when METAR background workers is started. Pulls METAR from VATSIM METAR website.
         /// </summary>
@@ -28,34 +31,17 @@ namespace DutchVACCATISGenerator.Workers
                 var request = WebRequest.Create("http://metar.vatsim.net/metar.php?id=" + e.Argument);
                 var response = request.GetResponse();
                 var reader = new StreamReader(response.GetResponseStream());
-                _dutchVACCATISGenerator.Metar = reader.ReadToEnd();
+
+                var metar = reader.ReadToEnd();
 
                 //Remove spaces.
-                if (_dutchVACCATISGenerator.Metar.StartsWith(e.Argument.ToString()))
-                    _dutchVACCATISGenerator.Metar = _dutchVACCATISGenerator.Metar.Trim();
+                if (metar.StartsWith(e.Argument.ToString()))
+                    e.Result = metar;
             }
             catch (WebException)
             {
                 MessageBox.Show("Unable to fetch the METAR from the Internet.\nProvide a METAR manually.", "Error");
             }
-        }
-
-        /// <summary>
-        /// Method called when METAR background worker has completed its task. Sets pulled METAR from VATSIM METAR website into the MetarTextBox.
-        /// </summary>
-        /// <param name="sender">Object sender</param>
-        /// <param name="e">Event arguments</param>
-        public void MetarBackgroundWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
-        {
-            //Set pulled METAR in the METAR text box.
-            _dutchVACCATISGenerator.MetarTextBox.Text = _dutchVACCATISGenerator.Metar;
-
-            //If auto process METAR check box is checked, automatically process the METAR.
-            if (_dutchVACCATISGenerator.AutoProcessMETARToolStripMenuItem.Checked && _dutchVACCATISGenerator.Metar != null)
-                _dutchVACCATISGenerator.ProcessMetarButton_Click(null, null);
-
-            //Re-enable the METAR button.
-            _dutchVACCATISGenerator.GetMetarButton.Enabled = true;
         }
     }
 }

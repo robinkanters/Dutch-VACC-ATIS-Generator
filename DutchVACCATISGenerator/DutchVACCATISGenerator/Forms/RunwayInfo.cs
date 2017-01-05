@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
-using DutchVACCATISGenerator.Types.Metar;
+using DutchVACCATISGenerator.Types;
 
 namespace DutchVACCATISGenerator.Forms
 {
@@ -89,7 +89,8 @@ namespace DutchVACCATISGenerator.Forms
             this.dutchVACCATISGenerator = dutchVACCATISGenerator;
             this.metar = metar;
 
-            setVisibleRunwayInfoDataGrid(this.dutchVACCATISGenerator.ICAOTabControl.SelectedTab.Text);
+            //TODO Fixen
+            //setVisibleRunwayInfoDataGrid(this.dutchVACCATISGenerator.ICAOTabControl.SelectedTab.Text);
 
             //Set runway friction combo box selection to first item.
             runwayFrictionComboBox.SelectedIndex = 0;
@@ -406,12 +407,13 @@ namespace DutchVACCATISGenerator.Forms
         /// </summary>
         public void checkICAOTabSelected()
         {
-            //Check if selected ICAO tab matches the ICAO of the processed METAR.
-            if (!(metar.ICAO.Equals(dutchVACCATISGenerator.ICAOTabControl.SelectedTab.Text))) MessageBox.Show(String.Format("Last processed METAR ICAO does not match the selected ICAO tab.\nRunway criteria will be calculated of the wrong METAR ({0})!", metar.ICAO), "Warning");
-            
-            //If selected ICAO tab is EHAM.
-            if (!(dutchVACCATISGenerator.ICAOTabControl.SelectedTab.Text.Equals("EHAM"))) ICAODirectoryToProcess(dutchVACCATISGenerator.ICAOTabControl.SelectedTab.Text);
-            else fillEHAMRunwayInfoDataGrids();
+            //TODO Fixen
+            ////Check if selected ICAO tab matches the ICAO of the processed METAR.
+            //if (!(metar.ICAO.Equals(dutchVACCATISGenerator.ICAOTabControl.SelectedTab.Text))) MessageBox.Show(String.Format("Last processed METAR ICAO does not match the selected ICAO tab.\nRunway criteria will be calculated of the wrong METAR ({0})!", metar.ICAO), "Warning");
+
+            ////If selected ICAO tab is EHAM.
+            //if (!(dutchVACCATISGenerator.ICAOTabControl.SelectedTab.Text.Equals("EHAM"))) ICAODirectoryToProcess(dutchVACCATISGenerator.ICAOTabControl.SelectedTab.Text);
+            //else fillEHAMRunwayInfoDataGrids();
         }
 
         /// <summary>
@@ -421,13 +423,14 @@ namespace DutchVACCATISGenerator.Forms
         /// <param name="e">Event arguments</param>
         private void RunwayInfo_FormClosing(object sender, FormClosingEventArgs e)
         {
-            //Set runway info button back to >.
-            if (dutchVACCATISGenerator.runwayInfoButton.Text.Equals("<")) dutchVACCATISGenerator.runwayInfoButton.Text = ">";
+            //TODO Fixen
+            ////Set runway info button back to >.
+            //if (dutchVACCATISGenerator.runwayInfoButton.Text.Equals("<")) dutchVACCATISGenerator.runwayInfoButton.Text = ">";
 
-            //Set runway info tool strip menu item back color to control.
-            dutchVACCATISGenerator.runwayInfoToolStripMenuItem.BackColor = SystemColors.Control;
+            ////Set runway info tool strip menu item back color to control.
+            //dutchVACCATISGenerator.runwayInfoToolStripMenuItem.BackColor = SystemColors.Control;
         }
-        
+
         /// <summary>
         /// Method called when a column in EHAM departure runway info DataGridView is sorted.
         /// </summary>
@@ -453,24 +456,25 @@ namespace DutchVACCATISGenerator.Forms
         /// <param name="icaoTab">ICAO tab selected.</param>
         public void ICAOBestRunway(String icaoTab)
         {
-            switch (icaoTab)
-            {
-                case "EHBK":
-                    dutchVACCATISGenerator.EHBKmainRunwayComboBox.SelectedIndex = dutchVACCATISGenerator.EHBKmainRunwayComboBox.Items.IndexOf(getBestRunway(runwayInfoDataGridView, EHBKRunways));
-                    break;
+            //TODO Fixen
+            //switch (icaoTab)
+            //{
+            //    case "EHBK":
+            //        dutchVACCATISGenerator.EHBKmainRunwayComboBox.SelectedIndex = dutchVACCATISGenerator.EHBKmainRunwayComboBox.Items.IndexOf(getBestRunway(runwayInfoDataGridView, EHBKRunways));
+            //        break;
 
-                case "EHRD":
-                    dutchVACCATISGenerator.EHRDmainRunwayComboBox.SelectedIndex = dutchVACCATISGenerator.EHRDmainRunwayComboBox.Items.IndexOf(getBestRunway(runwayInfoDataGridView, EHRDRunways));
-                    break;
+            //    case "EHRD":
+            //        dutchVACCATISGenerator.EHRDmainRunwayComboBox.SelectedIndex = dutchVACCATISGenerator.EHRDmainRunwayComboBox.Items.IndexOf(getBestRunway(runwayInfoDataGridView, EHRDRunways));
+            //        break;
 
-                case "EHGG":
-                    dutchVACCATISGenerator.EHGGmainRunwayComboBox.SelectedIndex = dutchVACCATISGenerator.EHGGmainRunwayComboBox.Items.IndexOf(getBestRunway(runwayInfoDataGridView, EHGGRunways));
-                    break;
+            //    case "EHGG":
+            //        dutchVACCATISGenerator.EHGGmainRunwayComboBox.SelectedIndex = dutchVACCATISGenerator.EHGGmainRunwayComboBox.Items.IndexOf(getBestRunway(runwayInfoDataGridView, EHGGRunways));
+            //        break;
 
-                case "EHEH":
-                    dutchVACCATISGenerator.EHEHmainRunwayComboBox.SelectedIndex = dutchVACCATISGenerator.EHEHmainRunwayComboBox.Items.IndexOf(getBestRunway(runwayInfoDataGridView, EHEHRunways));
-                    break;
-            }
+            //    case "EHEH":
+            //        dutchVACCATISGenerator.EHEHmainRunwayComboBox.SelectedIndex = dutchVACCATISGenerator.EHEHmainRunwayComboBox.Items.IndexOf(getBestRunway(runwayInfoDataGridView, EHEHRunways));
+            //        break;
+            //}
         }
 
         /// <summary>

@@ -100,6 +100,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Extensions\ATISExtensions.cs" />
+    <Compile Include="Extensions\FileInfoExtensions.cs" />
     <Compile Include="Extensions\PhenomenaExtensions.cs" />
     <Compile Include="Forms\About.cs">
       <SubType>Form</SubType>
@@ -120,6 +121,8 @@
       <DependentUpon>DutchVACCATISGenerator.cs</DependentUpon>
     </Compile>
     <Compile Include="FlashingWindow.cs" />
+    <Compile Include="Logic\Metar\CloudLogic.cs" />
+    <Compile Include="Logic\Metar\MetarLogic.cs" />
     <Compile Include="Resources\NATO phonetic alphabet.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
@@ -133,14 +136,14 @@
     <Compile Include="Workers\MetarWorker.cs" />
     <Compile Include="Workers\RealRunwayWorker.cs" />
     <Compile Include="Workers\VersionWorker.cs" />
-    <Compile Include="Types\Metar\MetarBECMG.cs" />
-    <Compile Include="Types\Metar\Metar.cs" />
-    <Compile Include="Types\Metar\MetarCloud.cs" />
-    <Compile Include="Types\Metar\MetarPhenoma.cs" />
-    <Compile Include="Types\Metar\MetarProcessor.cs" />
-    <Compile Include="Types\Metar\MetarTEMPO.cs" />
-    <Compile Include="Types\Metar\MetarWind.cs" />
-    <Compile Include="Types\Metar\TrendType.cs" />
+    <Compile Include="Types\MetarBECMG.cs" />
+    <Compile Include="Types\Metar.cs" />
+    <Compile Include="Types\MetarCloud.cs" />
+    <Compile Include="Types\MetarPhenoma.cs" />
+    <Compile Include="Logic\Metar\MetarProcessor.cs" />
+    <Compile Include="Types\MetarTEMPO.cs" />
+    <Compile Include="Types\MetarWind.cs" />
+    <Compile Include="Types\TrendType.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Forms\RunwayInfo.cs">

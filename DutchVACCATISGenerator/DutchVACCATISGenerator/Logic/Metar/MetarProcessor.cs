@@ -1,21 +1,22 @@
 ﻿using System;
 using System.Linq;
 using System.Text.RegularExpressions;
+using DutchVACCATISGenerator.Types;
 
-namespace DutchVACCATISGenerator.Types.Metar
+namespace DutchVACCATISGenerator.Logic.Metar
 {
     /// <summary>
     /// MetarProcessor class. Processes string METAR to usable fields in a METAR instance.
     /// </summary>
-    class MetarProcessor
+    public class MetarProcessor
     {
-        public Metar metar { get; private set; }
+        public Types.Metar metar { get; private set; }
 
         /// <summary>
         /// Constructor a MetarProcessor for a METAR with out TEMPO or BECMG trend.
         /// </summary>
         /// <param name="inputMetar">METAR</param>
-        public MetarProcessor(String inputMetar)
+        public MetarProcessor(string inputMetar)
         {
             processMetar(inputMetar.Split(' '), MetarType.FULL);
         }
@@ -26,7 +27,7 @@ namespace DutchVACCATISGenerator.Types.Metar
         /// <param name="inputMetar">METAR.</param>
         /// <param name="inputTrend">Trend part of the METAR.</param>
         /// <param name="trendType">Indicates what MetarType trend type to process.</param>
-        public MetarProcessor(String inputMetar, String inputTrend, MetarType trendType)
+        public MetarProcessor(string inputMetar, string inputTrend, MetarType trendType)
         {
             processMetar(inputMetar.Split(' '), MetarType.FULL);
 
@@ -48,7 +49,7 @@ namespace DutchVACCATISGenerator.Types.Metar
         /// <param name="inputMetar">METAR</param>
         /// <param name="inputTempo">Tempo part of the METAR.</param>
         /// <param name="inputBecmg">BECMG part of the METAR.</param>
-        public MetarProcessor(String inputMetar, String inputTempo, String inputBecmg)
+        public MetarProcessor(string inputMetar, string inputTempo, string inputBecmg)
         {
             processMetar(inputMetar.Split(' '), MetarType.FULL);
             processMetar(inputTempo.Split(' '), MetarType.TEMPO);
@@ -60,15 +61,15 @@ namespace DutchVACCATISGenerator.Types.Metar
         /// </summary>
         /// <param name="input">METAR.</param>
         /// <param name="metarType">Indicates what MetarType to process.</param>
-        private void processMetar(String[] input, MetarType metarType)
+        private void processMetar(string[] input, MetarType metarType)
         {
             switch(metarType)
             {
                 #region FULL
                 case MetarType.FULL:                   
-                    metar = new Metar();
+                    metar = new Types.Metar();
 
-                    foreach (String s in input)
+                    foreach (var s in input)
                     {
                         #region ICAO
                         if (s.All(char.IsLetter) && stringIsLength(4, s) && s.Equals(input[0]))
@@ -490,5 +491,6 @@ namespace DutchVACCATISGenerator.Types.Metar
 
             return false;
         }
+
     }
 }

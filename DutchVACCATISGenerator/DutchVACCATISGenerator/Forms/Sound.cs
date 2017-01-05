@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
+using DutchVACCATISGenerator.Extensions;
 using NAudio.Wave;
 
 namespace DutchVACCATISGenerator.Forms
@@ -28,8 +29,10 @@ namespace DutchVACCATISGenerator.Forms
 
             this.dutchVACCATISGenerator = dutchVACCATISGenerator;
 
+            //TODO Fixen
             //Enable the build ATIS button if the ATIS has already been build.
-            if (dutchVACCATISGenerator.outputTextBox.Text.Trim().Equals(String.Empty)) buildATISButton.Enabled = false;
+            //if (dutchVACCATISGenerator.outputTextBox.Text.Trim().Equals(string.Empty))
+            //    buildATISButton.Enabled = false;
 
             //Get and set the property of the path to the ATIS folder if it has been saved before.
             if (!Properties.Settings.Default.atisehamPath.Equals(String.Empty)) atisehamFileTextBox.Text = Properties.Settings.Default.atisehamPath;
@@ -148,8 +151,9 @@ namespace DutchVACCATISGenerator.Forms
             playATISButton.Text = "Play ATIS";
 
             //Re-enable the build ATIS button.
-            if (dutchVACCATISGenerator.atisSamples != null && dutchVACCATISGenerator.atisSamples.Count != 0)
-                buildATISButton.Enabled = true;
+            //TODO Fixen
+            //if (dutchVACCATISGenerator.atisSamples != null && dutchVACCATISGenerator.atisSamples.Count != 0)
+            //    buildATISButton.Enabled = true;
             
             //Dispose the AudioFileReader to release the file.
             try
@@ -241,8 +245,9 @@ namespace DutchVACCATISGenerator.Forms
             buildATISButton.Enabled = false;
 
             //Build ATIS.
-            if (dutchVACCATISGenerator.atisSamples != null && dutchVACCATISGenerator.atisSamples.Count != 0)
-                buildAtis(dutchVACCATISGenerator.atisSamples);
+            //TODO Fixen
+            //if (dutchVACCATISGenerator.atisSamples != null && dutchVACCATISGenerator.atisSamples.Count != 0)
+            //    buildAtis(dutchVACCATISGenerator.atisSamples);
         }
 
         /// <summary>
@@ -257,7 +262,7 @@ namespace DutchVACCATISGenerator.Forms
             WaveFileWriter waveFileWriter = null;
 
             //If file is in use by another process.
-            if (IsFileLocked(new FileInfo(Path.GetDirectoryName(atisehamFileTextBox.Text) + "\\atis.wav")))
+            if (new FileInfo(Path.GetDirectoryName(atisehamFileTextBox.Text) + "\\atis.wav").IsFileLocked())
             {
                 MessageBox.Show("Cannot generate new atis.wav file. File does not exist or is in use by another process.", "Error"); return;
             }
@@ -360,35 +365,6 @@ namespace DutchVACCATISGenerator.Forms
         private void Sound_FormClosing(object sender, FormClosingEventArgs e)
         {
             e.Cancel = true;
-        }
-
-        /// <summary>
-        /// Check if file is in use by another process.
-        /// </summary>
-        /// <param name="file">File to check.</param>
-        /// <returns>Boolean indicating if file is in use by another process.</returns>
-        protected virtual bool IsFileLocked(FileInfo file)
-        {
-            FileStream stream = null;
-
-            //Try to open file using the FileStream.
-            try
-            {
-                stream = file.Open(FileMode.Open, FileAccess.ReadWrite, FileShare.None);
-            }
-            catch (IOException)
-            {
-                //File locked.
-                return true;
-            }
-            //Close FileStream.
-            finally
-            {
-                if (stream != null) stream.Close();
-            }
-
-            //File not locked.
-            return false;
         }
     }
 }

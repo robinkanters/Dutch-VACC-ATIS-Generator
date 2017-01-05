@@ -33,23 +33,24 @@ namespace DutchVACCATISGenerator.Forms
         /// <returns>String indicating TAF to load</returns>
         private string determineTAFToLoad()
         {
-            switch(dutchVACCATISGenerator.ICAOTabControl.SelectedTab.Name)
-            {
-                case "EHAM":
-                    return "TAF EHAM";
+            //TODO Fixen
+            //switch(dutchVACCATISGenerator.ICAOTabControl.SelectedTab.Name)
+            //{
+            //    case "EHAM":
+            //        return "TAF EHAM";
 
-                case "EHBK":
-                    return "TAF EHBK";
+            //    case "EHBK":
+            //        return "TAF EHBK";
 
-                case "EHEH":
-                    return "TAF EHEH";
+            //    case "EHEH":
+            //        return "TAF EHEH";
 
-                case "EHGG":
-                    return "TAF EHGG";
+            //    case "EHGG":
+            //        return "TAF EHGG";
 
-                case "EHRD":
-                    return "TAF EHRD";
-            }
+            //    case "EHRD":
+            //        return "TAF EHRD";
+            //}
 
             return String.Empty;
         }
@@ -60,23 +61,24 @@ namespace DutchVACCATISGenerator.Forms
         /// <returns>String indicating TAF AMD to determine</returns>
         private string determineTAFAMDToLoad()
         {
-            switch (dutchVACCATISGenerator.ICAOTabControl.SelectedTab.Name)
-            {
-                case "EHAM":
-                    return "TAF AMD EHAM";
+            //TODO Fixen
+            //switch (dutchVACCATISGenerator.ICAOTabControl.SelectedTab.Name)
+            //{
+            //    case "EHAM":
+            //        return "TAF AMD EHAM";
 
-                case "EHBK":
-                    return "TAF AMD EHBK";
+            //    case "EHBK":
+            //        return "TAF AMD EHBK";
 
-                case "EHEH":
-                    return "TAF AMD EHEH";
+            //    case "EHEH":
+            //        return "TAF AMD EHEH";
 
-                case "EHGG":
-                    return "TAF AMD EHGG";
+            //    case "EHGG":
+            //        return "TAF AMD EHGG";
 
-                case "EHRD":
-                    return "TAF AMD EHRD";
-            }
+            //    case "EHRD":
+            //        return "TAF AMD EHRD";
+            //}
 
             return String.Empty;
         }
@@ -87,23 +89,24 @@ namespace DutchVACCATISGenerator.Forms
         /// <returns>String indicating TAF COR to determine</returns>
         private string determineTAFCORToLoad()
         {
-            switch (dutchVACCATISGenerator.ICAOTabControl.SelectedTab.Name)
-            {
-                case "EHAM":
-                    return "TAF COR EHAM";
+            //TODO Fixen
+            //switch (dutchVACCATISGenerator.ICAOTabControl.SelectedTab.Name)
+            //{
+            //    case "EHAM":
+            //        return "TAF COR EHAM";
 
-                case "EHBK":
-                    return "TAF COR EHBK";
+            //    case "EHBK":
+            //        return "TAF COR EHBK";
 
-                case "EHEH":
-                    return "TAF COR EHEH";
+            //    case "EHEH":
+            //        return "TAF COR EHEH";
 
-                case "EHGG":
-                    return "TAF COR EHGG";
+            //    case "EHGG":
+            //        return "TAF COR EHGG";
 
-                case "EHRD":
-                    return "TAF COR EHRD";
-            }
+            //    case "EHRD":
+            //        return "TAF COR EHRD";
+            //}
 
             return String.Empty;
         }
@@ -115,7 +118,8 @@ namespace DutchVACCATISGenerator.Forms
         /// <param name="e">Event arguments</param>
         private void TAF_FormClosing(object sender, FormClosingEventArgs e)
         {
-            dutchVACCATISGenerator.tAFToolStripMenuItem.BackColor = SystemColors.Control;
+            //TODO Fixen
+            //dutchVACCATISGenerator.tAFToolStripMenuItem.BackColor = SystemColors.Control;
         }
 
         /// <summary>

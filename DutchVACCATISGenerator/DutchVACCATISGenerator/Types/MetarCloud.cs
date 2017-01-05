@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace DutchVACCATISGenerator.Types.Metar
+namespace DutchVACCATISGenerator.Types
 {
     /// <summary>
     /// Represents the cloud of a METAR as easy accessible fields.

@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace DutchVACCATISGenerator.Types.Metar
+namespace DutchVACCATISGenerator.Types
 {
     /// <summary>
-    /// Represents the fields for a BECMG trend in a METAR.
+    /// Represents the fields for a TEMPO trend in a METAR.
     /// </summary>
-    public class MetarBECMG
+    public class MetarTEMPO
     {
         public MetarWind Wind { get; set; }
         public List<MetarPhenomena> Phenomena { get; set; }
@@ -18,9 +18,9 @@ namespace DutchVACCATISGenerator.Types.Metar
         public Boolean NSW { get; set; }
 
         /// <summary>
-        /// Construct a MetarBECMG. Initializes fields.
+        /// Construct a MetarTEMPO. Initializes fields.
         /// </summary>
-        public MetarBECMG()
+        public MetarTEMPO()
         {
             Phenomena = new List<MetarPhenomena>();
             Clouds = new List<MetarCloud>();
