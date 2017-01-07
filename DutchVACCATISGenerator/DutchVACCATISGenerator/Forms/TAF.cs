@@ -1,187 +1,172 @@
 ﻿using System;
-using System.Drawing;
-using System.Net;
+using System.ComponentModel;
 using System.Windows.Forms;
+using DutchVACCATISGenerator.Workers;
 
 namespace DutchVACCATISGenerator.Forms
 {
     /// <summary>
-    /// TAF class.
+    ///     TAF class.
     /// </summary>
     public partial class TAF : Form
     {
-        private DutchVACCATISGenerator dutchVACCATISGenerator;
-        private string taf;
+        private readonly ITAFWorker _tafWorker;
 
         /// <summary>
-        /// Constructor of TAF. Initializes new instance of TAF.
+        ///     Constructor of TAF. Initializes new instance of TAF.
         /// </summary>
-        /// <param name="dutchVACCATISGenerator">Parent DutchVACCATISGenerator</param>
-        public TAF(DutchVACCATISGenerator dutchVACCATISGenerator)
+        /// <param name="icao">Selected ICAO</param>
+        public TAF(string icao)
         {
             InitializeComponent();
 
-            this.dutchVACCATISGenerator = dutchVACCATISGenerator;
+            _tafWorker = new TAFWorker();
 
             //Load TAF.
-            tafBackgroundWorker.RunWorkerAsync();
+            tafBackgroundWorker.RunWorkerAsync(icao);
         }
 
-        /// <summary>
-        /// Method to determine TAF to load.
-        /// </summary>
-        /// <returns>String indicating TAF to load</returns>
-        private string determineTAFToLoad()
-        {
-            //TODO Fixen
-            //switch(dutchVACCATISGenerator.ICAOTabControl.SelectedTab.Name)
-            //{
-            //    case "EHAM":
-            //        return "TAF EHAM";
-
-            //    case "EHBK":
-            //        return "TAF EHBK";
-
-            //    case "EHEH":
-            //        return "TAF EHEH";
-
-            //    case "EHGG":
-            //        return "TAF EHGG";
-
-            //    case "EHRD":
-            //        return "TAF EHRD";
-            //}
-
-            return String.Empty;
-        }
+        public event EventHandler CloseEvent;
 
         /// <summary>
-        /// Method to determine if TAF contains AMD.
+        ///     Method to determine if TAF contains AMD.
         /// </summary>
         /// <returns>String indicating TAF AMD to determine</returns>
-        private string determineTAFAMDToLoad()
+        private static string DetermineTafamdToLoad(string icao)
         {
-            //TODO Fixen
-            //switch (dutchVACCATISGenerator.ICAOTabControl.SelectedTab.Name)
-            //{
-            //    case "EHAM":
-            //        return "TAF AMD EHAM";
+            switch (icao)
+            {
+                case "EHAM":
+                    return "TAF AMD EHAM";
 
-            //    case "EHBK":
-            //        return "TAF AMD EHBK";
+                case "EHBK":
+                    return "TAF AMD EHBK";
 
-            //    case "EHEH":
-            //        return "TAF AMD EHEH";
+                case "EHEH":
+                    return "TAF AMD EHEH";
 
-            //    case "EHGG":
-            //        return "TAF AMD EHGG";
+                case "EHGG":
+                    return "TAF AMD EHGG";
 
-            //    case "EHRD":
-            //        return "TAF AMD EHRD";
-            //}
+                case "EHRD":
+                    return "TAF AMD EHRD";
+            }
 
-            return String.Empty;
+            return string.Empty;
         }
 
         /// <summary>
-        /// Method to determine if TAF contains COR.
+        ///     Method to determine if TAF contains COR.
         /// </summary>
         /// <returns>String indicating TAF COR to determine</returns>
-        private string determineTAFCORToLoad()
+        private static string DetermineTafcorToLoad(string icao)
         {
-            //TODO Fixen
-            //switch (dutchVACCATISGenerator.ICAOTabControl.SelectedTab.Name)
-            //{
-            //    case "EHAM":
-            //        return "TAF COR EHAM";
+            switch (icao)
+            {
+                case "EHAM":
+                    return "TAF COR EHAM";
 
-            //    case "EHBK":
-            //        return "TAF COR EHBK";
+                case "EHBK":
+                    return "TAF COR EHBK";
 
-            //    case "EHEH":
-            //        return "TAF COR EHEH";
+                case "EHEH":
+                    return "TAF COR EHEH";
 
-            //    case "EHGG":
-            //        return "TAF COR EHGG";
+                case "EHGG":
+                    return "TAF COR EHGG";
 
-            //    case "EHRD":
-            //        return "TAF COR EHRD";
-            //}
+                case "EHRD":
+                    return "TAF COR EHRD";
+            }
 
-            return String.Empty;
+            return string.Empty;
         }
 
         /// <summary>
-        /// Method called if TAF form is closed.
+        ///     Method to determine TAF to load.
+        /// </summary>
+        /// <returns>String indicating TAF to load</returns>
+        private static string DetermineTAFToLoad(string icao)
+        {
+            switch (icao)
+            {
+                case "EHAM":
+                    return "TAF EHAM";
+
+                case "EHBK":
+                    return "TAF EHBK";
+
+                case "EHEH":
+                    return "TAF EHEH";
+
+                case "EHGG":
+                    return "TAF EHGG";
+
+                case "EHRD":
+                    return "TAF EHRD";
+            }
+
+            return string.Empty;
+        }
+
+        /// <summary>
+        ///     Method called if TAF form is closed.
         /// </summary>
         /// <param name="sender">Object sender</param>
         /// <param name="e">Event arguments</param>
         private void TAF_FormClosing(object sender, FormClosingEventArgs e)
         {
-            //TODO Fixen
-            //dutchVACCATISGenerator.tAFToolStripMenuItem.BackColor = SystemColors.Control;
+            CloseEvent?.Invoke(this, e);
         }
 
-        /// <summary>
-        /// Called when the TAF background worker is started.
-        /// </summary>
-        /// <param name="sender">Object sender</param>
-        /// <param name="e">Event arguments</param>
-        private void tafBackgroundWorker_DoWork(object sender, System.ComponentModel.DoWorkEventArgs e)
+        private void tafBackgroundWorker_DoWork(object sender, DoWorkEventArgs e)
         {
-            try
-            {
-                //Create web client.
-                WebClient client = new WebClient();
-
-                //Set user Agent, make the site think we're not a bot.
-                client.Headers[HttpRequestHeader.UserAgent] = "Mozilla/5.0"; //(Windows; U; Windows NT 6.1; en-US; rv:1.9.2.4) Gecko/20100611 Firefox/3.6.4";
-
-                //Make web request to get TAF.
-                //taf = client.DownloadString("http://www.aviationweather.gov/adds/tafs?station_ids=EHAM&std_trans=standard&submit_taf=Get+TAFs");
-                taf = client.DownloadString("https://www.knmi.nl/nederland-nu/luchtvaart/vliegveldverwachtingen");
-            }
-            catch (Exception)
-            {
-                //Show error.
-                MessageBox.Show("Unable to load TAF from the Internet.", "Error");
-            }
+            _tafWorker.TAFBackgroundWorker_DoWork(sender, e);
         }
-
-        /// <summary>
-        /// Called when the TAF background worker is finished.
-        /// </summary>
-        /// <param name="sender">Object sender</param>
-        /// <param name="e">Event arguments</param>
-        private void tafBackgroundWorker_RunWorkerCompleted(object sender, System.ComponentModel.RunWorkerCompletedEventArgs e)
+        
+        private void tafBackgroundWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
+            var result = (Tuple<string, string>) e.Result;
+
+            var icao = result.Item1;
+            var taf = result.Item2;
+
             //Remove/clear old TAF from rich text box.
             TAFRichTextBox.Clear();
 
             try
             {
-                if (taf.Contains(determineTAFAMDToLoad()))
+                if (taf.Contains(DetermineTafamdToLoad(icao)))
                 {
                     //Get TAF part from loaded HTML code.
-                    string[] split = (determineTAFAMDToLoad() + taf.Split(new string[] { determineTAFAMDToLoad() }, StringSplitOptions.None)[1]).Split(new string[] { "=" }, StringSplitOptions.None)[0].Split(new string[] { "\r\n" }, StringSplitOptions.None);
+                    var split =
+                    (DetermineTafamdToLoad(icao) +
+                     taf.Split(new[] {DetermineTafamdToLoad(icao)}, StringSplitOptions.None)[1]).Split(new[] {"="},
+                        StringSplitOptions.None)[0].Split(new[] {"\r\n"}, StringSplitOptions.None);
 
-                    foreach (string s in split)
+                    foreach (var s in split)
                         TAFRichTextBox.Text += s.Trim() + "\r\n";
                 }
-                else if(taf.Contains(determineTAFCORToLoad()))
+                else if (taf.Contains(DetermineTafcorToLoad(icao)))
                 {
                     //Get TAF part from loaded HTML code.
-                    string[] split = (determineTAFCORToLoad() + taf.Split(new string[] { determineTAFCORToLoad() }, StringSplitOptions.None)[1]).Split(new string[] { "=" }, StringSplitOptions.None)[0].Split(new string[] { "\r\n" }, StringSplitOptions.None);
+                    var split =
+                    (DetermineTafcorToLoad(icao) +
+                     taf.Split(new[] {DetermineTafcorToLoad(icao)}, StringSplitOptions.None)[1]).Split(new[] {"="},
+                        StringSplitOptions.None)[0].Split(new[] {"\r\n"}, StringSplitOptions.None);
 
-                    foreach (string s in split)
+                    foreach (var s in split)
                         TAFRichTextBox.Text += s.Trim() + "\r\n";
                 }
                 else
                 {
                     //Get TAF part from loaded HTML code.
-                    string[] split = (determineTAFToLoad() + taf.Split(new string[] { determineTAFToLoad() }, StringSplitOptions.None)[1]).Split(new string[] { "=" }, StringSplitOptions.None)[0].Split(new string[] { "\n" }, StringSplitOptions.None);
+                    var split =
+                    (DetermineTAFToLoad(icao) +
+                     taf.Split(new[] {DetermineTAFToLoad(icao)}, StringSplitOptions.None)[1]).Split(new[] {"="},
+                        StringSplitOptions.None)[0].Split(new[] {"\n"}, StringSplitOptions.None);
 
-                    foreach (string s in split)
+                    foreach (var s in split)
                         TAFRichTextBox.Text += s.TrimEnd() + "\r\n";
                 }
             }

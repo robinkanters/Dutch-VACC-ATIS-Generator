@@ -135,6 +135,7 @@
     </Compile>
     <Compile Include="Workers\MetarWorker.cs" />
     <Compile Include="Workers\RealRunwayWorker.cs" />
+    <Compile Include="Workers\TAFWorker.cs" />
     <Compile Include="Workers\VersionWorker.cs" />
     <Compile Include="Types\MetarBECMG.cs" />
     <Compile Include="Types\Metar.cs" />

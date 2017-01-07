@@ -69,7 +69,7 @@ namespace DutchVACCATISGenerator.Forms
                 autoGenerateATISBackgroundWorker.RunWorkerAsync();
 
             //Initialize sound form.
-            Sound = new Sound(this);
+            Sound = new Sound(!outputTextBox.Text.Trim().Equals(string.Empty), Left, Bottom);
         }
 
         private int ATISIndex { get; set; }
@@ -540,10 +540,10 @@ namespace DutchVACCATISGenerator.Forms
                 if (TAF.tafBackgroundWorker.IsBusy)
                     TAF.tafBackgroundWorker.CancelAsync();
 
-                TAF.tafBackgroundWorker.RunWorkerAsync();
+                TAF.tafBackgroundWorker.RunWorkerAsync(ICAOTabControl.SelectedTab.Name);
             }
 
-            metarBackgroundWorker.RunWorkerAsync(icaoTextBox.Text);
+            metarBackgroundWorker.RunWorkerAsync(ICAOTabControl.SelectedTab.Name);
 
             //Set phonetic alphabet.
             SetPhoneticAlphabet();
@@ -1130,7 +1130,7 @@ namespace DutchVACCATISGenerator.Forms
                 //Create new Sound form.
                 soundButton.Text = "▲";
                 Sound?.Show();
-                Sound?.showRelativeToDutchVACCATISGenerator(this);
+                Sound?.ShowRelativeToDutchVACCATISGenerator(Left, Bottom);
 
                 //Inverse sound state boolean.
                 SoundState = !SoundState;
@@ -1146,7 +1146,7 @@ namespace DutchVACCATISGenerator.Forms
                 Sound.Visible = false;
 
                 //Stop the wavePlayer.
-                Sound.wavePlayer?.Stop();
+                Sound.StopPlaying();
 
                 //Inverse sound state boolean.
                 SoundState = !SoundState;
@@ -1165,8 +1165,13 @@ namespace DutchVACCATISGenerator.Forms
             if (TAF == null || !TAF.Visible)
             {
                 //Create new Sound form.
-                TAF = new TAF(this);
+                TAF = new TAF(ICAOTabControl.SelectedTab.Name);
                 TAF.Show();
+
+                //Register close event.
+                TAF.CloseEvent += delegate {
+                    tAFToolStripMenuItem.BackColor = SystemColors.Control;    
+                };
 
                 //Set TAF tool strip menu item back color to gradient active caption.
                 tAFToolStripMenuItem.BackColor = SystemColors.GradientActiveCaption;
