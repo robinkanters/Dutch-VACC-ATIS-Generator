@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -6,14 +6,12 @@ using System.Windows.Forms;
 using DutchVACCATISGenerator.Extensions;
 using DutchVACCATISGenerator.Types;
 
-namespace DutchVACCATISGenerator.Logic.Metar
+namespace DutchVACCATISGenerator.Logic
 {
     public class MetarLogic
     {
-        public List<string> atisSamples { get; set; }
-        public Types.Metar Metar { get; set; }
-        public MetarProcessor _metarProcessor { set; get; }
-
+        public List<string> ATISSamples { get; set; }
+        public Metar Metar { get; set; }
 
         /// <summary>
         /// Split METAR on split word.
@@ -86,35 +84,108 @@ namespace DutchVACCATISGenerator.Logic.Metar
                 Regex.IsMatch(metar, @"(^|\s)BLACK(\s|$)"))
 
             {
-                processMilitaryMetar(metar);
+                ProcessMilitaryMetar(metar);
             }
-            
-                //If METAR contains both BECMG and TEMPO trends.
+            //If METAR contains both BECMG and TEMPO trends.
             else if (metar.Contains("BECMG") && metar.Contains("TEMPO"))
             {
                 //If BECMG is the first trend.
-                _metarProcessor = metar.IndexOf("BECMG") < metar.IndexOf("TEMPO")
-                    ? new MetarProcessor(splitMetar(metar, "BECMG")[0].Trim(),
+                Metar = metar.IndexOf("BECMG") < metar.IndexOf("TEMPO")
+                    ? new Metar(splitMetar(metar, "BECMG")[0].Trim(),
                         splitMetar(metar, "TEMPO")[1].Trim(),
                         splitMetar(splitMetar(metar, "BECMG")[1].Trim(), "TEMPO")[0].Trim())
-                    : new MetarProcessor(splitMetar(metar, "TEMPO")[0].Trim(),
+                    : new Metar(splitMetar(metar, "TEMPO")[0].Trim(),
                         splitMetar(splitMetar(metar, "TEMPO")[1].Trim(), "BECMG")[0].Trim(),
                         splitMetar(metar, "BECMG")[1].Trim());
             }
             //If METAR only contains BECMG.
             else if (metar.Contains("BECMG"))
-                _metarProcessor = new MetarProcessor(splitMetar(metar, "BECMG")[0].Trim(), 
-                    splitMetar(metar, "BECMG")[1].Trim(), 
+                Metar = new Metar(splitMetar(metar, "BECMG")[0].Trim(),
+                    splitMetar(metar, "BECMG")[1].Trim(),
                     MetarType.BECMG);
             //If METAR only contains TEMPO.
             else if (metar.Contains("TEMPO"))
-                _metarProcessor = new MetarProcessor(splitMetar(metar, "TEMPO")[0].Trim(), 
+                Metar = new Metar(splitMetar(metar, "TEMPO")[0].Trim(),
                     splitMetar(metar, "TEMPO")[1].Trim(), MetarType.TEMPO);
             //Process non trend containing METAR.
             else
-                _metarProcessor = new MetarProcessor(metar);
+                Metar = new Metar(metar);
         }
 
+        /// <summary>
+        /// Processes a military METAR.
+        /// </summary>
+        /// <param name="metar">String - METAR</param>
+        private void ProcessMilitaryMetar(string metar)
+        {
+            //Military visibility codes.
+            string[] militaryColors = { "BLU", "WHT", "GRN", "YLO", "AMB", "RED", "BLACK" };
+
+            //If METAR contains BECMG and TEMPO
+            if (metar.Contains("BECMG") && metar.Contains("TEMPO"))
+            {
+                if (metar.IndexOf("BECMG", StringComparison.Ordinal) < metar.IndexOf("TEMPO", StringComparison.Ordinal))
+                {
+                    //Check which military visibility code the METAR contains.
+                    foreach (var militaryColor in militaryColors)
+                    {
+                        if (Regex.IsMatch(metar, @"(^|\s)" + militaryColor + @"(\s|$)"))
+                            Metar = new Metar(splitMetar(metar, militaryColor)[0].Trim() /* BASE METAR */,
+                                splitMetar(splitMetar(splitMetar(metar, militaryColor)[1].Trim(), "BECMG")[1].Trim(), "TEMPO")[1].Trim() /* TEMPO TREND */,
+                                splitMetar(splitMetar(splitMetar(metar, militaryColor)[1].Trim(), "BECMG")[1].Trim(), "TEMPO")[0].Trim() /* BECMG TREND */);
+                    }
+                }
+                else
+                {
+                    //Check which military visibility code the METAR contains.
+                    foreach (var militaryColor in militaryColors)
+                    {
+                        if (Regex.IsMatch(metar, @"(^|\s)" + militaryColor + @"(\s|$)"))
+                            Metar = new Metar(splitMetar(metar, militaryColor)[0].Trim() /* BASE METAR */,
+                                splitMetar(splitMetar(splitMetar(metar, militaryColor)[1].Trim(), "TEMPO")[1].Trim(), "BECMG")[0].Trim() /* TEMPO TREND */,
+                                splitMetar(splitMetar(splitMetar(metar, militaryColor)[1].Trim(), "TEMPO")[1].Trim(), "BECMG")[1].Trim() /* BECMG TREND */);
+                    }
+                }
+            }
+            //If METAR contains BECMG or TEMPO
+            else if (metar.Contains("BECMG") || metar.Contains("TEMPO"))
+            {
+                //If METAR contains BECMG.
+                if (metar.Contains("BECMG"))
+                {
+                    //Check which military visibility code the METAR contains.
+                    foreach (var militaryColor in militaryColors)
+                    {
+                        if (Regex.IsMatch(metar, @"(^|\s)" + militaryColor + @"(\s|$)"))
+                            Metar = new Metar(splitMetar(metar, militaryColor)[0].Trim() /* BASE METAR */,
+                                splitMetar(splitMetar(metar, militaryColor)[1].Trim(), "BECMG")[1].Trim() /* BECMG TREND */,
+                                MetarType.BECMG);
+                    }
+                }
+                else
+                {
+                    //Check which military visibility code the METAR contains.
+                    foreach (var militaryColor in militaryColors)
+                    {
+                        if (Regex.IsMatch(metar, @"(^|\s)" + militaryColor + @"(\s|$)"))
+                            Metar = new Metar(splitMetar(metar, militaryColor)[0].Trim() /* BASE METAR */,
+                                splitMetar(splitMetar(metar, militaryColor)[1].Trim(), "TEMPO")[1].Trim() /* TEMPO TREND */,
+                                MetarType.TEMPO);
+                    }
+                }
+            }
+            //If METAR only contains military visibility code.
+            else
+            {
+                //Check which military visibility code the METAR contains.
+                foreach (var militaryColor in militaryColors)
+                {
+                    if (Regex.IsMatch(metar, @"(^|\s)" + militaryColor + @"(\s|$)"))
+                        Metar = new Metar(splitMetar(metar, militaryColor)[0].Trim());
+                }
+            }
+        }
+        
         /// <summary>
         /// Calculate transition level from QNH and temperature.
         /// </summary>
@@ -124,163 +195,89 @@ namespace DutchVACCATISGenerator.Logic.Metar
             int temp;
 
             //If METAR contains M (negative value), multiply by -1 to make an negative integer.
-            if (_metarProcessor.metar.Temperature.StartsWith("M"))
-                temp = Convert.ToInt32(_metarProcessor.metar.Temperature.Substring(1)) * -1;
+            if (Metar.Temperature.StartsWith("M"))
+                temp = Convert.ToInt32(Metar.Temperature.Substring(1)) * -1;
 
             else
-                temp = Convert.ToInt32(_metarProcessor.metar.Temperature);
+                temp = Convert.ToInt32(Metar.Temperature);
 
             //Calculate TL level. TL = 307.8-0.13986*T-0.26224*Q (thanks to Stefan Blauw for this formula).
-            return (int)Math.Ceiling((307.8 - (0.13986 * temp) - (0.26224 * _metarProcessor.metar.QNH)) / 5) * 5;
+            return (int)Math.Ceiling((307.8 - (0.13986 * temp) - (0.26224 * Metar.QNH)) / 5) * 5;
         }
-
-        private void processMilitaryMetar(string metar)
-        {
-     
-            {
-                //Military visibility codes.
-                string[] militaryColors = { "BLU", "WHT", "GRN", "YLO", "AMB", "RED", "BLACK" };
-
-                //If METAR contains BECMG and TEMPO
-                if (metar.Contains("BECMG") && metar.Contains("TEMPO"))
-                {
-                    if (metar.IndexOf("BECMG", StringComparison.Ordinal) < metar.IndexOf("TEMPO", StringComparison.Ordinal))
-                    {
-                        //Check which military visibility code the METAR contains.
-                        foreach (var militaryColor in militaryColors)
-                        {
-                            if (Regex.IsMatch(metar, @"(^|\s)" + militaryColor + @"(\s|$)"))
-                                _metarProcessor = new MetarProcessor(splitMetar(metar, militaryColor)[0].Trim() /* BASE METAR */,
-                                    splitMetar(splitMetar(splitMetar(metar, militaryColor)[1].Trim(), "BECMG")[1].Trim(), "TEMPO")[1].Trim() /* TEMPO TREND */,
-                                    splitMetar(splitMetar(splitMetar(metar, militaryColor)[1].Trim(), "BECMG")[1].Trim(), "TEMPO")[0].Trim() /* BECMG TREND */);
-                        }
-                    }
-                    else
-                    {
-                        //Check which military visibility code the METAR contains.
-                        foreach (var militaryColor in militaryColors)
-                        {
-                            if (Regex.IsMatch(metar, @"(^|\s)" + militaryColor + @"(\s|$)"))
-                                _metarProcessor = new MetarProcessor(splitMetar(metar, militaryColor)[0].Trim() /* BASE METAR */,
-                                    splitMetar(splitMetar(splitMetar(metar, militaryColor)[1].Trim(), "TEMPO")[1].Trim(), "BECMG")[0].Trim() /* TEMPO TREND */,
-                                    splitMetar(splitMetar(splitMetar(metar, militaryColor)[1].Trim(), "TEMPO")[1].Trim(), "BECMG")[1].Trim() /* BECMG TREND */);
-                        }
-                    }
-                }
-                //If METAR contains BECMG or TEMPO
-                else if (metar.Contains("BECMG") || metar.Contains("TEMPO"))
-                {
-                    //If METAR contains BECMG.
-                    if (metar.Contains("BECMG"))
-                    {
-                        //Check which military visibility code the METAR contains.
-                        foreach (var militaryColor in militaryColors)
-                        {
-                            if (Regex.IsMatch(metar, @"(^|\s)" + militaryColor + @"(\s|$)"))
-                                _metarProcessor = new MetarProcessor(splitMetar(metar, militaryColor)[0].Trim() /* BASE METAR */,
-                                    splitMetar(splitMetar(metar, militaryColor)[1].Trim(), "BECMG")[1].Trim() /* BECMG TREND */,
-                                    MetarType.BECMG);
-                        }
-                    }
-                    else
-                    {
-                        //Check which military visibility code the METAR contains.
-                        foreach (var militaryColor in militaryColors)
-                        {
-                            if (Regex.IsMatch(metar, @"(^|\s)" + militaryColor + @"(\s|$)"))
-                                _metarProcessor = new MetarProcessor(splitMetar(metar, militaryColor)[0].Trim() /* BASE METAR */,
-                                    splitMetar(splitMetar(metar, militaryColor)[1].Trim(), "TEMPO")[1].Trim() /* TEMPO TREND */,
-                                    MetarType.TEMPO);
-                        }
-                    }
-                }
-                //If METAR only contains military visibility code.
-                else
-                {
-                    //Check which military visibility code the METAR contains.
-                    foreach (var militaryColor in militaryColors)
-                    {
-                        if (Regex.IsMatch(metar, @"(^|\s)" + militaryColor + @"(\s|$)"))
-                            _metarProcessor = new MetarProcessor(splitMetar(metar, militaryColor)[0].Trim());
-                    }
-                }
-            }
-        }
-
 
         /// <summary>
         /// Generate wind output.
         /// </summary>
         /// <param name="input">String</param>
         /// <returns>String output</returns>
-        private String windToOutput(MetarWind input)
+        private string windToOutput(MetarWind input)
         {
-            String output = String.Empty;
+            string output = string.Empty;
 
             //If MetarWind has a calm wind.
-            if (input.VRB)
+            if (input.Vrb)
             {
                 #region ADD SAMPLES TO ATISSAMPLES
-                atisSamples.Add("vrb");
+                ATISSamples.Add("vrb");
 
-                addIndividualDigitsToATISSamples(input.windKnots);
+                addIndividualDigitsToATISSamples(input.WindKnots);
 
-                atisSamples.Add("kt");
+                ATISSamples.Add("kt");
                 #endregion
 
-                output += " VARIABLE " + input.windKnots + " KNOTS";
+                output += " VARIABLE " + input.WindKnots + " KNOTS";
             }
             //If MetarWind has a gusting wind.
-            else if (input.windGustMin != null)
+            else if (input.WindGustMin != null)
             {
                 #region ADD SAMPLES TO ATISSAMPLES
-                addIndividualDigitsToATISSamples(input.windHeading);
+                addIndividualDigitsToATISSamples(input.WindHeading);
 
-                atisSamples.Add("deg");
+                ATISSamples.Add("deg");
 
-                addIndividualDigitsToATISSamples(input.windGustMin);
+                addIndividualDigitsToATISSamples(input.WindGustMin);
 
-                atisSamples.Add("max");
+                ATISSamples.Add("max");
 
-                addIndividualDigitsToATISSamples(input.windGustMax);
+                addIndividualDigitsToATISSamples(input.WindGustMax);
 
-                atisSamples.Add("kt");
+                ATISSamples.Add("kt");
                 #endregion
 
-                output += " " + input.windHeading + " DEGREES" + input.windGustMin + " MAXIMUM " + input.windGustMax + " KNOTS";
+                output += " " + input.WindHeading + " DEGREES" + input.WindGustMin + " MAXIMUM " + input.WindGustMax + " KNOTS";
             }
             //If MetarWind has a normal wind.
             else
             {
                 #region ADD SAMPLES TO ATISSAMPLES
-                addIndividualDigitsToATISSamples(input.windHeading);
+                addIndividualDigitsToATISSamples(input.WindHeading);
 
-                atisSamples.Add("deg");
+                ATISSamples.Add("deg");
 
-                addIndividualDigitsToATISSamples(input.windKnots);
+                addIndividualDigitsToATISSamples(input.WindKnots);
 
-                atisSamples.Add("kt");
+                ATISSamples.Add("kt");
                 #endregion
 
-                output += " " + input.windHeading + " DEGREES " + input.windKnots + " KNOTS";
+                output += " " + input.WindHeading + " DEGREES " + input.WindKnots + " KNOTS";
             }
 
             /*Variable wind*/
-            if (input.windVariableLeft != null)
+            if (input.WindVariableLeft != null)
             {
                 #region ADD SAMPLES TO ATISSAMPLES
-                atisSamples.Add("vrbbtn");
+                ATISSamples.Add("vrbbtn");
 
-                addIndividualDigitsToATISSamples(input.windVariableLeft);
+                addIndividualDigitsToATISSamples(input.WindVariableLeft);
 
-                atisSamples.Add("and");
+                ATISSamples.Add("and");
 
-                addIndividualDigitsToATISSamples(input.windVariableRight);
+                addIndividualDigitsToATISSamples(input.WindVariableRight);
 
-                atisSamples.Add("deg");
+                ATISSamples.Add("deg");
                 #endregion
 
-                output += " VARIABLE BETWEEN " + input.windVariableLeft + " AND " + input.windVariableRight + " DEGREES";
+                output += " VARIABLE BETWEEN " + input.WindVariableLeft + " AND " + input.WindVariableRight + " DEGREES";
             }
 
             return output;
@@ -293,47 +290,47 @@ namespace DutchVACCATISGenerator.Logic.Metar
             foreach (var digit in processed)
             {
                 if (!string.IsNullOrEmpty(digit))
-                    atisSamples.Add(digit);
+                    ATISSamples.Add(digit);
             }
         }
 
         public void GenerateAtis()
         {
-            atisSamples = new List<String>();
+            ATISSamples = new List<string>();
 
-            String output = String.Empty;
+            string output = string.Empty;
 
             #region ICAO
             //Generate output from processed METAR ICAO.
-            switch (_metarProcessor.metar.ICAO)
+            switch (Metar.ICAO)
             {
                 //If processed ICAO is EHAM.
                 case "EHAM":
-                    atisSamples.Add("ehamatis");
+                    ATISSamples.Add("ehamatis");
                     output += "THIS IS SCHIPHOL INFORMATION";
                     break;
 
                 //If processed ICAO is EHBK.
                 case "EHBK":
-                    atisSamples.Add("ehbkatis");
+                    ATISSamples.Add("ehbkatis");
                     output += "THIS IS BEEK INFORMATION";
                     break;
 
                 //If processed ICAO is EHEH.
                 case "EHEH":
-                    atisSamples.Add("ehehatis");
+                    ATISSamples.Add("ehehatis");
                     output += "THIS IS EINDHOVEN INFORMATION";
                     break;
 
                 //If processed ICAO is EHGG.
                 case "EHGG":
-                    atisSamples.Add("ehggatis");
+                    ATISSamples.Add("ehggatis");
                     output += "THIS IS EELDE INFORMATION";
                     break;
 
                 //If processed ICAO is EHRD.
                 case "EHRD":
-                    atisSamples.Add("ehrdatis");
+                    ATISSamples.Add("ehrdatis");
                     output += "THIS IS ROTTERDAM INFORMATION";
                     break;
             }
@@ -345,7 +342,7 @@ namespace DutchVACCATISGenerator.Logic.Metar
             //output += " " + PhoneticAlphabet[ATISIndex].AtisLetterToFullSpelling();
             #endregion
 
-            atisSamples.Add("pause");
+            ATISSamples.Add("pause");
 
             #region RUNWAYS
             //Add runway output to output.
@@ -354,7 +351,7 @@ namespace DutchVACCATISGenerator.Logic.Metar
 
             #region TL
             //Add transition level to output.
-            atisSamples.Add("trl");
+            ATISSamples.Add("trl");
             output += " TRANSITION LEVEL";
             //Calculate and add transition level to output.
             addIndividualDigitsToATISSamples(CalculateTransitionLevel().ToString());
@@ -366,7 +363,7 @@ namespace DutchVACCATISGenerator.Logic.Metar
             output += operationalReportToOutput();
             #endregion
 
-            atisSamples.Add("pause");
+            ATISSamples.Add("pause");
 
             #region WIND
             //If processed METAR has wind, generate and add wind output to output. 
@@ -376,201 +373,201 @@ namespace DutchVACCATISGenerator.Logic.Metar
             //    atisSamples.Add("wind");
             //    output += " WIND";
             //}
-            if (_metarProcessor.metar.Wind != null) output += windToOutput(_metarProcessor.metar.Wind);
+            if (Metar.Wind != null) output += windToOutput(Metar.Wind);
             #endregion
 
             #region CAVOK
             //If processed METAR has CAVOK, add CAVOK to output.
-            if (_metarProcessor.metar.CAVOK)
+            if (Metar.CAVOK)
             {
-                atisSamples.Add("cavok");
+                ATISSamples.Add("cavok");
                 output += " CAVOK";
             }
             #endregion
 
             #region VISIBILITY
             //If processed METAR has a visibility greater than 0, generate and add visibility output to output. 
-            if (_metarProcessor.metar.Visibility > 0) output += visibilityToOutput(_metarProcessor.metar.Visibility);
+            if (Metar.Visibility > 0) output += visibilityToOutput(Metar.Visibility);
             #endregion
 
             #region RVRONATC
             //If processed METAR has RVR, add RVR to output. 
-            if (_metarProcessor.metar.RVR)
+            if (Metar.RVR)
             {
-                atisSamples.Add("rvronatc");
+                ATISSamples.Add("rvronatc");
                 output += " RVR AVAILABLE ON ATC FREQUENCY";
             }
             #endregion
 
             #region PHENOMENA
             //Generate and add weather phenomena to output.
-            output += listToOutput(_metarProcessor.metar.Phenomena);
+            output += listToOutput(Metar.Phenomena);
             #endregion
 
             #region CLOUDS OPTIONS
             //If processed METAR has SKC, add SKC to output. 
-            if (_metarProcessor.metar.SKC)
+            if (Metar.SKC)
             {
-                atisSamples.Add("skc");
+                ATISSamples.Add("skc");
                 output += " SKY CLEAR";
             }
             //If processed METAR has NSC, add NSC to output. 
-            if (_metarProcessor.metar.NSC)
+            if (Metar.NSC)
             {
-                atisSamples.Add("sc");
+                ATISSamples.Add("sc");
                 output += " NO SIGNIFICANT CLOUDS";
             }
             #endregion
 
             #region CLOUDS
             //Generate and add weather clouds to output. 
-            output += listToOutput(_metarProcessor.metar.Clouds);
+            output += listToOutput(Metar.Clouds);
             #endregion
 
             #region VERTICAL VISIBILITY
             //If processed METAR has a vertical visibility greater than 0, add vertical visibility to output.
-            if (_metarProcessor.metar.VerticalVisibility > 0)
+            if (Metar.VerticalVisibility > 0)
             {
-                atisSamples.Add("vv");
-                addIndividualDigitsToATISSamples(_metarProcessor.metar.VerticalVisibility.ToString());
-                atisSamples.Add("hunderd");
-                atisSamples.Add("meters");
+                ATISSamples.Add("vv");
+                addIndividualDigitsToATISSamples(Metar.VerticalVisibility.ToString());
+                ATISSamples.Add("hunderd");
+                ATISSamples.Add("meters");
 
-                output += " VERTICAL VISIBILITY " + _metarProcessor.metar.VerticalVisibility + " HUNDERD METERS";
+                output += " VERTICAL VISIBILITY " + Metar.VerticalVisibility + " HUNDERD METERS";
             }
             #endregion
 
             #region TEMPERATURE
             //Add temperature to output.
-            atisSamples.Add("temp");
+            ATISSamples.Add("temp");
             output += " TEMPERATURE";
 
             //If processed METAR has a minus temperature.
-            if (_metarProcessor.metar.Temperature.StartsWith("M"))
+            if (Metar.Temperature.StartsWith("M"))
             {
-                atisSamples.Add("minus");
+                ATISSamples.Add("minus");
 
-                addIndividualDigitsToATISSamples(Convert.ToInt32(_metarProcessor.metar.Temperature.ToString().Substring(1, 2)).ToString());
+                addIndividualDigitsToATISSamples(Convert.ToInt32(Metar.Temperature.ToString().Substring(1, 2)).ToString());
 
-                output += " MINUS " + Convert.ToInt32(_metarProcessor.metar.Temperature.ToString().Substring(1, 2));
+                output += " MINUS " + Convert.ToInt32(Metar.Temperature.ToString().Substring(1, 2));
             }
             //Positive temperature.
             else
             {
-                addIndividualDigitsToATISSamples(Convert.ToInt32(_metarProcessor.metar.Temperature.ToString()).ToString());
+                addIndividualDigitsToATISSamples(Convert.ToInt32(Metar.Temperature.ToString()).ToString());
 
-                output += " " + Convert.ToInt32(_metarProcessor.metar.Temperature.ToString());
+                output += " " + Convert.ToInt32(Metar.Temperature.ToString());
             }
             #endregion
 
             #region DEWPOINT
             //Add dewpoint to output.
-            atisSamples.Add("dp");
+            ATISSamples.Add("dp");
             output += " DEWPOINT";
 
             //If processed METAR has a minus dewpoint.
-            if (_metarProcessor.metar.Dewpoint.StartsWith("M"))
+            if (Metar.Dewpoint.StartsWith("M"))
             {
-                atisSamples.Add("minus");
+                ATISSamples.Add("minus");
 
-                addIndividualDigitsToATISSamples(Convert.ToInt32(_metarProcessor.metar.Dewpoint.ToString().Substring(1, 2)).ToString());
+                addIndividualDigitsToATISSamples(Convert.ToInt32(Metar.Dewpoint.ToString().Substring(1, 2)).ToString());
 
-                output += " MINUS " + Convert.ToInt32(_metarProcessor.metar.Dewpoint.ToString().Substring(1, 2));
+                output += " MINUS " + Convert.ToInt32(Metar.Dewpoint.ToString().Substring(1, 2));
             }
 
             //Positive dewpoint.
             else
             {
-                addIndividualDigitsToATISSamples(Convert.ToInt32(_metarProcessor.metar.Dewpoint.ToString()).ToString());
+                addIndividualDigitsToATISSamples(Convert.ToInt32(Metar.Dewpoint.ToString()).ToString());
 
-                output += " " + Convert.ToInt32(_metarProcessor.metar.Dewpoint.ToString());
+                output += " " + Convert.ToInt32(Metar.Dewpoint.ToString());
             }
             #endregion
 
             #region QNH
             //Add QNH to output.
-            atisSamples.Add("qnh");
+            ATISSamples.Add("qnh");
             output += " QNH";
-            addIndividualDigitsToATISSamples(_metarProcessor.metar.QNH.ToString());
-            output += " " + _metarProcessor.metar.QNH.ToString();
-            atisSamples.Add("hpa");
+            addIndividualDigitsToATISSamples(Metar.QNH.ToString());
+            output += " " + Metar.QNH.ToString();
+            ATISSamples.Add("hpa");
             output += " HECTOPASCAL";
             #endregion
 
             #region NOSIG
             //If processed METAR has NOSIG, add NOSIG to output.
-            if (_metarProcessor.metar.NOSIG)
+            if (Metar.NOSIG)
             {
-                atisSamples.Add("nosig");
+                ATISSamples.Add("nosig");
                 output += " NO SIGNIFICANT CHANGE";
             }
             #endregion
 
             #region TEMPO
             //If processed METAR has a TEMPO trend.
-            if (_metarProcessor.metar.metarTEMPO != null)
+            if (Metar.MetarTEMPO != null)
             {
                 //Add TEMPO to output.
-                atisSamples.Add("tempo");
+                ATISSamples.Add("tempo");
                 output += " TEMPORARY";
 
                 #region TEMPO WIND
                 //If processed TEMPO trend has wind, generate and add wind output to output. 
-                if (_metarProcessor.metar.metarTEMPO.Wind != null) output += windToOutput(_metarProcessor.metar.metarTEMPO.Wind);
+                if (Metar.MetarTEMPO.Wind != null) output += windToOutput(Metar.MetarTEMPO.Wind);
                 #endregion
 
                 #region TEMPO CAVOK
                 //If processed TEMPO trend has CAVOK, add CAVOK to output.
-                if (_metarProcessor.metar.metarTEMPO.CAVOK)
+                if (Metar.MetarTEMPO.CAVOK)
                 {
-                    atisSamples.Add("cavok");
+                    ATISSamples.Add("cavok");
                     output += " CAVOK";
                 }
                 #endregion
 
                 #region TEMPO VISIBILITY
                 //If processed TEMPO trend has a visibility greater than 0, generate and add visibility output to output. 
-                if (_metarProcessor.metar.metarTEMPO.Visibility > 0) output += visibilityToOutput(_metarProcessor.metar.metarTEMPO.Visibility);
+                if (Metar.MetarTEMPO.Visibility > 0) output += visibilityToOutput(Metar.MetarTEMPO.Visibility);
                 #endregion
 
                 #region TEMPO PHENOMENA
                 //If TEMPO trend has 1 or more weather phenomena, generate and add TEMPO trend weather phenomena to output.
-                if (_metarProcessor.metar.metarTEMPO.Phenomena.Count > 0) output += listToOutput(_metarProcessor.metar.metarTEMPO.Phenomena);
+                if (Metar.MetarTEMPO.Phenomena.Count > 0) output += listToOutput(Metar.MetarTEMPO.Phenomena);
                 #endregion
 
                 #region TEMPO SKC
                 //If TEMPO trend has SKC, add SKC to output. 
-                if (_metarProcessor.metar.metarTEMPO.SKC)
+                if (Metar.MetarTEMPO.SKC)
                 {
-                    atisSamples.Add("skc");
+                    ATISSamples.Add("skc");
                     output += " SKY CLEAR";
                 }
                 #endregion
 
                 #region TEMPO NSW
                 //If TEMPO trend has NSW, add NSW to output. 
-                if (_metarProcessor.metar.metarTEMPO.NSW)
+                if (Metar.MetarTEMPO.NSW)
                 {
-                    atisSamples.Add("nsw");
+                    ATISSamples.Add("nsw");
                     output += " NO SIGNIFICANT WEATHER";
                 }
                 #endregion
 
                 #region TEMPO CLOUDS
                 //If TEMPO trend has 1 or more weather clouds, generate and add TEMPO weather clouds to output. 
-                if (_metarProcessor.metar.metarTEMPO.Clouds.Count > 0) output += listToOutput(_metarProcessor.metar.metarTEMPO.Clouds);
+                if (Metar.MetarTEMPO.Clouds.Count > 0) output += listToOutput(Metar.MetarTEMPO.Clouds);
                 #endregion
 
                 #region TEMPO VERTICAL VISIBILITY
                 //If TEMPO trend has a vertical visibility greater than 0, add TEMPO trend vertical visibility to output.
-                if (_metarProcessor.metar.metarTEMPO.VerticalVisibility > 0)
+                if (Metar.MetarTEMPO.VerticalVisibility > 0)
                 {
-                    atisSamples.Add("vv");
-                    addIndividualDigitsToATISSamples(_metarProcessor.metar.metarTEMPO.VerticalVisibility.ToString());
-                    atisSamples.Add("hunderd");
-                    atisSamples.Add("meters");
+                    ATISSamples.Add("vv");
+                    addIndividualDigitsToATISSamples(Metar.MetarTEMPO.VerticalVisibility.ToString());
+                    ATISSamples.Add("hunderd");
+                    ATISSamples.Add("meters");
 
-                    output += " VERTICAL VISIBILITY " + _metarProcessor.metar.metarTEMPO.VerticalVisibility + " HUNDERD METERS";
+                    output += " VERTICAL VISIBILITY " + Metar.MetarTEMPO.VerticalVisibility + " HUNDERD METERS";
                 }
                 #endregion
             }
@@ -578,69 +575,69 @@ namespace DutchVACCATISGenerator.Logic.Metar
 
             #region BECMG
             //If processed METAR has e BECMG trend.
-            if (_metarProcessor.metar.metarBECMG != null)
+            if (Metar.MetarBECMG != null)
             {
                 //Add BECMG to output.
-                atisSamples.Add("becmg");
+                ATISSamples.Add("becmg");
                 output += " BECOMING";
 
                 #region BECMG WIND
                 //If processed BECMG trend has wind, generate and add wind output to output.
-                if (_metarProcessor.metar.metarBECMG.Wind != null) output += windToOutput(_metarProcessor.metar.metarBECMG.Wind);
+                if (Metar.MetarBECMG.Wind != null) output += windToOutput(Metar.MetarBECMG.Wind);
                 #endregion
 
                 #region BECMG CAVOK
                 //If processed BECMG trend has CAVOK, add CAVOK to output.
-                if (_metarProcessor.metar.metarBECMG.CAVOK)
+                if (Metar.MetarBECMG.CAVOK)
                 {
-                    atisSamples.Add("cavok");
+                    ATISSamples.Add("cavok");
                     output += " CAVOK";
                 }
                 #endregion
 
                 #region BECMG VISIBILITY
                 //If processed BECMG trend has a visibility greater than 0, generate and add visibility output to output. 
-                if (_metarProcessor.metar.metarBECMG.Visibility > 0) output += visibilityToOutput(_metarProcessor.metar.metarBECMG.Visibility);
+                if (Metar.MetarBECMG.Visibility > 0) output += visibilityToOutput(Metar.MetarBECMG.Visibility);
                 #endregion
 
                 #region BECMG PHENOMENA
                 //If BECMG trend has 1 or more weather phenomena, generate and add BECMG trend weather phenomena to output.
-                if (_metarProcessor.metar.metarBECMG.Phenomena.Count > 0) output += listToOutput(_metarProcessor.metar.metarBECMG.Phenomena);
+                if (Metar.MetarBECMG.Phenomena.Count > 0) output += listToOutput(Metar.MetarBECMG.Phenomena);
                 #endregion
 
                 #region BECMG SKC
                 //If BECMG trend has SKC, add SKC to output. 
-                if (_metarProcessor.metar.metarBECMG.SKC)
+                if (Metar.MetarBECMG.SKC)
                 {
-                    atisSamples.Add("skc");
+                    ATISSamples.Add("skc");
                     output += " SKY CLEAR";
                 }
                 #endregion
 
                 #region BECMG NSW
                 //If BECMG trend has NSW, add NSW to output. 
-                if (_metarProcessor.metar.metarBECMG.NSW)
+                if (Metar.MetarBECMG.NSW)
                 {
-                    atisSamples.Add("nsw");
+                    ATISSamples.Add("nsw");
                     output += " NO SIGNIFICANT WEATHER";
                 }
                 #endregion
 
                 #region BECMG CLOUDS
                 //If BECMG trend has 1 or more weather clouds, generate and add BECMG weather clouds to output. 
-                if (_metarProcessor.metar.metarBECMG.Clouds.Count > 0) output += listToOutput(_metarProcessor.metar.metarBECMG.Clouds);
+                if (Metar.MetarBECMG.Clouds.Count > 0) output += listToOutput(Metar.MetarBECMG.Clouds);
                 #endregion
 
                 #region BECMG VERTICAL VISIBILITY
                 //If BECMG trend has a vertical visibility greater than 0, add BECMG trend vertical visibility to output.
-                if (_metarProcessor.metar.metarBECMG.VerticalVisibility > 0)
+                if (Metar.MetarBECMG.VerticalVisibility > 0)
                 {
-                    atisSamples.Add("vv");
-                    addIndividualDigitsToATISSamples(_metarProcessor.metar.metarBECMG.VerticalVisibility.ToString());
-                    atisSamples.Add("hunderd");
-                    atisSamples.Add("meters");
+                    ATISSamples.Add("vv");
+                    addIndividualDigitsToATISSamples(Metar.MetarBECMG.VerticalVisibility.ToString());
+                    ATISSamples.Add("hunderd");
+                    ATISSamples.Add("meters");
 
-                    output += " VERTICAL VISIBILITY" + _metarProcessor.metar.metarBECMG.VerticalVisibility + " HUNDERD METERS";
+                    output += " VERTICAL VISIBILITY" + Metar.MetarBECMG.VerticalVisibility + " HUNDERD METERS";
                 }
                 #endregion
             }
@@ -676,7 +673,7 @@ namespace DutchVACCATISGenerator.Logic.Metar
 
             #region END
             //Add end to output.
-            atisSamples.Add("end");
+            ATISSamples.Add("end");
             output += " END OF INFORMATION";
             //TODO Fixen
             //output += " " + PhoneticAlphabet[ATISIndex].AtisLetterToFullSpelling();
@@ -699,7 +696,7 @@ namespace DutchVACCATISGenerator.Logic.Metar
 #if DEBUG
             Console.WriteLine();
 
-            foreach (var sample in atisSamples)
+            foreach (var sample in ATISSamples)
             {
                 if (sample.All(char.IsDigit))
                     Console.Write(sample);
@@ -725,19 +722,19 @@ namespace DutchVACCATISGenerator.Logic.Metar
             switch (input)
             {
                 case "L":
-                    atisSamples.Add("left");
+                    ATISSamples.Add("left");
                     return "L";
 
                 case "C":
-                    atisSamples.Add("center");
+                    ATISSamples.Add("center");
                     return "C";
 
                 case "R":
-                    atisSamples.Add("right");
+                    ATISSamples.Add("right");
                     return "R";
             }
 
-            return String.Empty;
+            return string.Empty;
         }
 
         /// <summary>
@@ -746,9 +743,9 @@ namespace DutchVACCATISGenerator.Logic.Metar
         /// <typeparam name="T">List type</typeparam>
         /// <param name="input">List<T></param>
         /// <returns>String output</returns>
-        private String listToOutput<T>(List<T> input)
+        private string listToOutput<T>(List<T> input)
         {
-            String output = String.Empty;
+            string output = string.Empty;
 
             #region MetarPhenomena
             //If list is a MetarPhenomena list.
@@ -756,48 +753,49 @@ namespace DutchVACCATISGenerator.Logic.Metar
             {
                 foreach (MetarPhenomena metarPhenomena in input as List<MetarPhenomena>)
                 {
+                    //TODO Light, Moderate, Heavy
                     //If phenomena has intensity.
-                    if (metarPhenomena.hasIntensity)
-                    {
-                        atisSamples.Add("-");
-                        output += " LIGHT";
-                    }
+                    //if (metarPhenomena.HasIntensity)
+                    //{
+                    //    ATISSamples.Add("-");
+                    //    output += " LIGHT";
+                    //}
 
                     //If phenomena is 4 character phenomena (BCFG | MIFG | SHRA | VCSH | VCTS).
-                    if (metarPhenomena.phenomena.Equals("BCFG") || metarPhenomena.phenomena.Equals("MIFG") || metarPhenomena.phenomena.Equals("SHRA") || metarPhenomena.phenomena.Equals("VCSH") || metarPhenomena.phenomena.Equals("VCTS"))
+                    if (metarPhenomena.Phenomena.Equals("BCFG") || metarPhenomena.Phenomena.Equals("MIFG") || metarPhenomena.Phenomena.Equals("SHRA") || metarPhenomena.Phenomena.Equals("VCSH") || metarPhenomena.Phenomena.Equals("VCTS"))
                     {
-                        switch (metarPhenomena.phenomena)
+                        switch (metarPhenomena.Phenomena)
                         {
                             case "BCFG":
-                                atisSamples.Add("bcfg");
+                                ATISSamples.Add("bcfg");
                                 output += " PATCHES OF FOG";
                                 break;
 
                             case "MIFG":
-                                atisSamples.Add("mifg");
+                                ATISSamples.Add("mifg");
                                 output += " SHALLOW FOG";
                                 break;
 
                             case "SHRA":
-                                atisSamples.Add("shra");
+                                ATISSamples.Add("shra");
                                 output += " SHOWERS OF RAIN";
                                 break;
 
                             case "VCSH":
-                                atisSamples.Add("vcsh");
+                                ATISSamples.Add("vcsh");
                                 output += " SHOWERS IN VICINITY";
                                 break;
 
                             case "VCTS":
-                                atisSamples.Add("vcts");
+                                ATISSamples.Add("vcts");
                                 output += " THUNDERSTORMS IN VICINITY";
                                 break;
                         }
                     }
                     //If phenomena is multi-phenomena (count > 2).
-                    else if (metarPhenomena.phenomena.Count() > 2)
+                    else if (metarPhenomena.Phenomena.Count() > 2)
                     {
-                        int length = metarPhenomena.phenomena.Length;
+                        int length = metarPhenomena.Phenomena.Length;
 
                         if ((length % 2) == 0)
                         {
@@ -807,13 +805,13 @@ namespace DutchVACCATISGenerator.Logic.Metar
                             {
                                 if (length - index != 2)
                                 {
-                                    output += metarPhenomena.phenomena.Substring(index, 2).PhenomenaToFullSpelling();
-                                    atisSamples.Add(metarPhenomena.phenomena.Substring(index, 2));
+                                    output += metarPhenomena.Phenomena.Substring(index, 2).PhenomenaToFullSpelling();
+                                    ATISSamples.Add(metarPhenomena.Phenomena.Substring(index, 2));
                                 }
                                 else
                                 {
-                                    output += metarPhenomena.phenomena.Substring(index).PhenomenaToFullSpelling();
-                                    atisSamples.Add(metarPhenomena.phenomena.Substring(index));
+                                    output += metarPhenomena.Phenomena.Substring(index).PhenomenaToFullSpelling();
+                                    ATISSamples.Add(metarPhenomena.Phenomena.Substring(index));
                                 }
 
                                 index = index + 2;
@@ -823,14 +821,14 @@ namespace DutchVACCATISGenerator.Logic.Metar
                     //If phenomena is 2 char phenomena.
                     else
                     {
-                        output += metarPhenomena.phenomena.PhenomenaToFullSpelling();
-                        atisSamples.Add(metarPhenomena.phenomena);
+                        output += metarPhenomena.Phenomena.PhenomenaToFullSpelling();
+                        ATISSamples.Add(metarPhenomena.Phenomena);
                     }
 
                     //If loop phenomena is not the last phenomena of the list, add [and].
                     if (metarPhenomena != (MetarPhenomena)Convert.ChangeType(input.Last(), typeof(MetarPhenomena)))
                     {
-                        atisSamples.Add("and");
+                        ATISSamples.Add("and");
                         output += " AND";
                     }
                 }
@@ -848,62 +846,62 @@ namespace DutchVACCATISGenerator.Logic.Metar
                     //output += cloudTypeToFullSpelling(metarCloud.cloudType);
 
                     //If cloud altitude equals ground level.
-                    if (metarCloud.altitude == 0)
+                    if (metarCloud.Altitude == 0)
                     {
-                        addIndividualDigitsToATISSamples(metarCloud.altitude.ToString());
+                        addIndividualDigitsToATISSamples(metarCloud.Altitude.ToString());
 
-                        output += " " + metarCloud.altitude;
+                        output += " " + metarCloud.Altitude;
                     }
 
                     //If cloud altitude is round ten-thousand (e.g. 10000 (100), 20000 (200), 30000 (300)).
-                    else if (metarCloud.altitude % 100 == 0)
+                    else if (metarCloud.Altitude % 100 == 0)
                     {
-                        addIndividualDigitsToATISSamples(Math.Floor(Convert.ToDouble(metarCloud.altitude / 100)).ToString() + "0");
-                        atisSamples.Add("thousand");
+                        addIndividualDigitsToATISSamples(Math.Floor(Convert.ToDouble(metarCloud.Altitude / 100)).ToString() + "0");
+                        ATISSamples.Add("thousand");
 
-                        output += " " + Math.Floor(Convert.ToDouble(metarCloud.altitude / 100)).ToString() + "0" + " THOUSAND";
+                        output += " " + Math.Floor(Convert.ToDouble(metarCloud.Altitude / 100)).ToString() + "0" + " THOUSAND";
                     }
 
                     else
                     {
                         //If cloud altitude is greater than a ten-thousand (e.g. 12000 (120), 23500 (235), 45000 (450)).
-                        if (metarCloud.altitude / 100 > 0)
+                        if (metarCloud.Altitude / 100 > 0)
                         {
-                            addIndividualDigitsToATISSamples(Math.Floor(Convert.ToDouble(metarCloud.altitude / 100)).ToString());
+                            addIndividualDigitsToATISSamples(Math.Floor(Convert.ToDouble(metarCloud.Altitude / 100)).ToString());
 
-                            output += " " + Math.Floor(Convert.ToDouble(metarCloud.altitude / 100)).ToString();
+                            output += " " + Math.Floor(Convert.ToDouble(metarCloud.Altitude / 100)).ToString();
 
                             //If cloud altitude has a ten-thousand and hundred value (e.g. 10200 (102), 20800 (208), 40700 (407)).
-                            if (metarCloud.altitude.ToString().Substring(1, 1).Equals("0"))
+                            if (metarCloud.Altitude.ToString().Substring(1, 1).Equals("0"))
                             {
-                                atisSamples.Add("0");
-                                atisSamples.Add("thousand");
+                                ATISSamples.Add("0");
+                                ATISSamples.Add("thousand");
                                 output += " 0 THOUSAND";
                             }
                         }
 
                         //If cloud altitude has a thousand (e.g. 2000 (020), 4000 (040), 5000 (050)).
-                        if ((metarCloud.altitude / 10) % 10 > 0)
+                        if ((metarCloud.Altitude / 10) % 10 > 0)
                         {
-                            addIndividualDigitsToATISSamples(Math.Floor(Convert.ToDouble((metarCloud.altitude / 10) % 10)).ToString());
-                            atisSamples.Add("thousand");
+                            addIndividualDigitsToATISSamples(Math.Floor(Convert.ToDouble((metarCloud.Altitude / 10) % 10)).ToString());
+                            ATISSamples.Add("thousand");
 
-                            output += " " + Math.Floor(Convert.ToDouble((metarCloud.altitude / 10) % 10)) + " THOUSAND";
+                            output += " " + Math.Floor(Convert.ToDouble((metarCloud.Altitude / 10) % 10)) + " THOUSAND";
                         }
 
                         //If cloud altitude has a hundred (e.g. 200 (002), 400 (004), 500 (005)).
-                        if (metarCloud.altitude % 10 > 0)
+                        if (metarCloud.Altitude % 10 > 0)
                         {
-                            addIndividualDigitsToATISSamples(Convert.ToString(metarCloud.altitude % 10));
-                            atisSamples.Add("hundred");
+                            addIndividualDigitsToATISSamples(Convert.ToString(metarCloud.Altitude % 10));
+                            ATISSamples.Add("hundred");
 
-                            output += " " + metarCloud.altitude % 10 + " HUNDRED";
+                            output += " " + metarCloud.Altitude % 10 + " HUNDRED";
                         }
                     }
 
-                    atisSamples.Add("ft");
+                    ATISSamples.Add("ft");
                     output += " FEET";
-                    
+
                     //TODO Fixen
                     //If cloud type has addition (e.g. CB, TCU).
                     //if (metarCloud.addition != null) output += cloudAddiationToFullSpelling(metarCloud.addition);
@@ -920,18 +918,18 @@ namespace DutchVACCATISGenerator.Logic.Metar
         /// <param name="runway"></param>
         /// <param name="runwayComboBox"></param>
         /// <returns>String of runway output</returns>
-        private String runwayToOutput(String runway, ComboBox runwayComboBox)
+        private string runwayToOutput(string runway, ComboBox runwayComboBox)
         {
-            String output = runway;
+            string output = runway;
             output += " ";
 
             //Split runway digit identifier from runway identifier.
-            String[] splitArray = Regex.Split(runwayComboBox.SelectedItem.ToString().Substring(0, 2), @"([0-9])");
+            string[] splitArray = Regex.Split(runwayComboBox.SelectedItem.ToString().Substring(0, 2), @"([0-9])");
 
-            foreach (String digit in splitArray)
+            foreach (string digit in splitArray)
             {
                 if (!string.IsNullOrEmpty(digit))
-                    atisSamples.Add(digit);
+                    ATISSamples.Add(digit);
             }
 
             //If selected runway contains runway identifier letter.
@@ -949,16 +947,16 @@ namespace DutchVACCATISGenerator.Logic.Metar
         /// Generate operational report.
         /// </summary>
         /// <returns>String output</returns>
-        private String operationalReportToOutput()
+        private string operationalReportToOutput()
         {
-            atisSamples.Add("opr");
-            String output = " OPERATIONAL REPORT";
+            ATISSamples.Add("opr");
+            string output = " OPERATIONAL REPORT";
 
             #region LOW LEVEL VISIBILITY
             //If visibility is not 0 or less than 1500 meter, add low visibility procedure phrase.
-            if (_metarProcessor.metar.Visibility != 0 && _metarProcessor.metar.Visibility < 1500)
+            if (Metar.Visibility != 0 && Metar.Visibility < 1500)
             {
-                atisSamples.Add("lvp");
+                ATISSamples.Add("lvp");
                 output += " LOW VISIBILITY PROCEDURES IN PROGRESS";
             }
             #endregion
@@ -1100,13 +1098,13 @@ namespace DutchVACCATISGenerator.Logic.Metar
             {
                 if (output.Contains(" INDEPENDENT PARALLEL APPROACHES IN PROGRESS"))
                 {
-                    atisSamples.Insert(atisSamples.IndexOf("independent"), "and");
+                    ATISSamples.Insert(ATISSamples.IndexOf("independent"), "and");
                     output = output.Insert(output.IndexOf("IND"), " AND ");
                 }
 
                 else
                 {
-                    atisSamples.Insert(atisSamples.IndexOf("convapp"), "and");
+                    ATISSamples.Insert(ATISSamples.IndexOf("convapp"), "and");
                     output = output.Insert(output.IndexOf("CON"), " AND");
                 }
             }
@@ -1115,7 +1113,7 @@ namespace DutchVACCATISGenerator.Logic.Metar
             if (!output.Equals(" OPERATIONAL REPORT")) return output;
             else
             {
-                atisSamples.Remove("opr");
+                ATISSamples.Remove("opr");
                 return "";
             }
         }
@@ -1125,17 +1123,17 @@ namespace DutchVACCATISGenerator.Logic.Metar
         /// </summary>
         /// <param name="input">Integer</param>
         /// <returns>String output</returns>
-        private String visibilityToOutput(int input)
+        private string visibilityToOutput(int input)
         {
-            atisSamples.Add("vis");
-            String output = " VISIBILITY";
+            ATISSamples.Add("vis");
+            string output = " VISIBILITY";
 
             //If visibility is lower than 800 meters (less than 800 meters phrase).
             if (input < 800)
             {
-                atisSamples.Add("<");
+                ATISSamples.Add("<");
                 addIndividualDigitsToATISSamples("800");
-                atisSamples.Add("meters");
+                ATISSamples.Add("meters");
 
                 output += " LESS THAN 8 HUNDRED METERS";
             }
@@ -1143,8 +1141,8 @@ namespace DutchVACCATISGenerator.Logic.Metar
             else if (input < 1000)
             {
                 addIndividualDigitsToATISSamples(Convert.ToString(input / 100));
-                atisSamples.Add("hundred");
-                atisSamples.Add("meters");
+                ATISSamples.Add("hundred");
+                ATISSamples.Add("meters");
 
                 output += " " + Convert.ToString(input / 100) + " HUNDRED METERS";
             }
@@ -1152,10 +1150,10 @@ namespace DutchVACCATISGenerator.Logic.Metar
             else if (input < 5000 && (input % 1000) != 0)
             {
                 addIndividualDigitsToATISSamples(Convert.ToString(input / 1000));
-                atisSamples.Add("thousand");
+                ATISSamples.Add("thousand");
                 addIndividualDigitsToATISSamples(Convert.ToString((input % 1000) / 100));
-                atisSamples.Add("hundred");
-                atisSamples.Add("meters");
+                ATISSamples.Add("hundred");
+                ATISSamples.Add("meters");
 
                 output += " " + Convert.ToString(input / 1000) + " THOUSAND " + Convert.ToString((input % 1000) / 100) + " HUNDRED METERS";
             }
@@ -1163,7 +1161,7 @@ namespace DutchVACCATISGenerator.Logic.Metar
             else if (input >= 9999)
             {
                 addIndividualDigitsToATISSamples("10");
-                atisSamples.Add("km");
+                ATISSamples.Add("km");
 
                 output += " 10 KILOMETERS";
             }
@@ -1171,7 +1169,7 @@ namespace DutchVACCATISGenerator.Logic.Metar
             else
             {
                 addIndividualDigitsToATISSamples(Convert.ToString(input / 1000));
-                atisSamples.Add("km");
+                ATISSamples.Add("km");
 
                 output += " " + Convert.ToString(input / 1000) + " KILOMETERS";
             }
@@ -1183,7 +1181,7 @@ namespace DutchVACCATISGenerator.Logic.Metar
         /// Method to generate route output.
         /// </summary>
         /// <returns>String containing the runway output of the selected airport tab.</returns>
-        private String generateRunwayOutput()
+        private string generateRunwayOutput()
         {
             return string.Empty;
             //TODO Fixen
@@ -1292,7 +1290,7 @@ namespace DutchVACCATISGenerator.Logic.Metar
 
         public void AddToAtisSamples(string sample)
         {
-            atisSamples.Add(sample);
+            ATISSamples.Add(sample);
         }
     }
 }

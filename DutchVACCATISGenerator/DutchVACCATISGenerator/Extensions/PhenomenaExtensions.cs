@@ -1,18 +1,27 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Resources;
-using System.Text;
-using System.Threading.Tasks;
-using DutchVACCATISGenerator.Resources;
+﻿using DutchVACCATISGenerator.Resources;
 
 namespace DutchVACCATISGenerator.Extensions
 {
     public static class PhenomenaExtensions
     {
-        public static string PhenomenaToFullSpelling(this string cloudType)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="phenomena"></param>
+        /// <returns></returns>
+        public static string PhenomenaToFullSpelling(this string phenomena)
         {
-            return Phenomena.ResourceManager.GetString(cloudType);
+            return Phenomena.ResourceManager.GetString(phenomena);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="phenomena"></param>
+        /// <returns></returns>
+        public static bool IsPhenomena(this string phenomena)
+        {
+            return !string.IsNullOrWhiteSpace(Phenomena.ResourceManager.GetString(phenomena)) || phenomena.StartsWith("-") || phenomena.StartsWith("+");
         }
     }
 }

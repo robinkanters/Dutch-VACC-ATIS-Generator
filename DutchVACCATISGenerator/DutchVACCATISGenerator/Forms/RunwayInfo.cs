@@ -12,85 +12,87 @@ namespace DutchVACCATISGenerator.Forms
     /// </summary>
     public partial class RunwayInfo : Form
     {
+        private readonly int _bottom;
+        private readonly int _left;
         private const int OKCOLUMN = 4;
-
-        private DutchVACCATISGenerator dutchVACCATISGenerator { get; set; }
-        public Metar metar { get; set; }
+        
+        public Metar _metar { get; set; }
         
         //Tuple<RunwayHeading, OpositeRunwayHeading, Day Preference, Night Preference>
-        private Dictionary<String, Tuple<int, int, String, String>> EHAMlandingRunways = new Dictionary<String, Tuple<int, int, String, String>>()
+        private Dictionary<string, Tuple<int, int, string, string>> EHAMlandingRunways = new Dictionary<string, Tuple<int, int, string, string>>()
         {
-            {"04", new Tuple<int, int, String, String>(041, 221,  "9" , "--")},
-            {"06", new Tuple<int, int, String, String>(058, 238, "1", "1")},
-            {"09", new Tuple<int, int, String, String>(087, 267, "8", "--")},
-            {"18C", new Tuple<int, int, String, String>(183, 003, "4", "--")},
-            {"18R", new Tuple<int, int, String, String>(183, 003, "2", "2")},
-            {"22", new Tuple<int, int, String, String>(221, 041, "7", "--")},
-            {"24", new Tuple<int, int, String, String>(238, 058, "7", "--")},
-            {"27", new Tuple<int, int, String, String>(267, 087, "6", "--")},
-            {"36C", new Tuple<int, int, String, String>(003, 183, "5", "3")},
-            {"36R", new Tuple<int, int, String, String>(003, 183, "3", "--")}
+            {"04", new Tuple<int, int, string, string>(041, 221,  "9" , "--")},
+            {"06", new Tuple<int, int, string, string>(058, 238, "1", "1")},
+            {"09", new Tuple<int, int, string, string>(087, 267, "8", "--")},
+            {"18C", new Tuple<int, int, string, string>(183, 003, "4", "--")},
+            {"18R", new Tuple<int, int, string, string>(183, 003, "2", "2")},
+            {"22", new Tuple<int, int, string, string>(221, 041, "7", "--")},
+            {"24", new Tuple<int, int, string, string>(238, 058, "7", "--")},
+            {"27", new Tuple<int, int, string, string>(267, 087, "6", "--")},
+            {"36C", new Tuple<int, int, string, string>(003, 183, "5", "3")},
+            {"36R", new Tuple<int, int, string, string>(003, 183, "3", "--")}
         };
 
         //Tuple<RunwayHeading, OpositeRunwayHeading, Day Preference, Night Preference>
-        private Dictionary<String, Tuple<int, int, String, String>> EHAMdepartureRunways = new Dictionary<String, Tuple<int, int, String, String>>()
+        private Dictionary<string, Tuple<int, int, string, string>> EHAMdepartureRunways = new Dictionary<string, Tuple<int, int, string, string>>()
         {
-            {"04", new Tuple<int, int, String, String>(041, 221, "10", "--")},
-            {"06", new Tuple<int, int, String, String>(058, 238, "8", "4")},
-            {"09", new Tuple<int, int, String, String>(087, 267, "6", "--")},
-            {"18L", new Tuple<int, int, String, String>(183, 003, "4", "--")},
-            {"18C", new Tuple<int, int, String, String>(183, 003, "5", "3")},
-            {"22", new Tuple<int, int, String, String>(221, 041, "9", "--")},
-            {"24", new Tuple<int, int, String, String>(238, 058, "2", "2")},
-            {"27", new Tuple<int, int, String, String>(267, 087, "7", "--")},
-            {"36L", new Tuple<int, int, String, String>(003, 183, "1", "1")},
-            {"36C", new Tuple<int, int, String, String>(003, 183, "3", "--")},
+            {"04", new Tuple<int, int, string, string>(041, 221, "10", "--")},
+            {"06", new Tuple<int, int, string, string>(058, 238, "8", "4")},
+            {"09", new Tuple<int, int, string, string>(087, 267, "6", "--")},
+            {"18L", new Tuple<int, int, string, string>(183, 003, "4", "--")},
+            {"18C", new Tuple<int, int, string, string>(183, 003, "5", "3")},
+            {"22", new Tuple<int, int, string, string>(221, 041, "9", "--")},
+            {"24", new Tuple<int, int, string, string>(238, 058, "2", "2")},
+            {"27", new Tuple<int, int, string, string>(267, 087, "7", "--")},
+            {"36L", new Tuple<int, int, string, string>(003, 183, "1", "1")},
+            {"36C", new Tuple<int, int, string, string>(003, 183, "3", "--")},
         };
 
         //Tuple<RunwayHeading, OpositeRunwayHeading, Preference>
-        private Dictionary<String, Tuple<int, int, String>> EHBKRunways = new Dictionary<String, Tuple<int, int, String>>()
+        private Dictionary<string, Tuple<int, int, string>> EHBKRunways = new Dictionary<string, Tuple<int, int, string>>()
         {
-            {"03", new Tuple<int, int, String>(032, 212, "2")},
-            {"21", new Tuple<int, int, String>(212, 032, "1")},
+            {"03", new Tuple<int, int, string>(032, 212, "2")},
+            {"21", new Tuple<int, int, string>(212, 032, "1")},
         };
 
         //Tuple<RunwayHeading, OpositeRunwayHeading, Preference>
-        private Dictionary<String, Tuple<int, int, String>> EHRDRunways = new Dictionary<String, Tuple<int, int, String>>()
+        private Dictionary<string, Tuple<int, int, string>> EHRDRunways = new Dictionary<string, Tuple<int, int, string>>()
         {
-            {"06", new Tuple<int, int, String>(057, 257, "2")},
-            {"24", new Tuple<int, int, String>(237, 037, "1")},
+            {"06", new Tuple<int, int, string>(057, 257, "2")},
+            {"24", new Tuple<int, int, string>(237, 037, "1")},
         };
 
         //Tuple<RunwayHeading, OpositeRunwayHeading, Preference>
-        private Dictionary<String, Tuple<int, int, String>> EHEHRunways = new Dictionary<String, Tuple<int, int, String>>()
+        private Dictionary<string, Tuple<int, int, string>> EHEHRunways = new Dictionary<string, Tuple<int, int, string>>()
         {
-            {"03", new Tuple<int, int, String>(034, 214, "2")},
-            {"21", new Tuple<int, int, String>(214, 034, "1")},
+            {"03", new Tuple<int, int, string>(034, 214, "2")},
+            {"21", new Tuple<int, int, string>(214, 034, "1")},
         };
 
         //Tuple<RunwayHeading, OpositeRunwayHeading, Preference>
-        private Dictionary<String, Tuple<int, int, String>> EHGGRunways = new Dictionary<String, Tuple<int, int, String>>()
+        private Dictionary<string, Tuple<int, int, string>> EHGGRunways = new Dictionary<string, Tuple<int, int, string>>()
         {
-            {"01", new Tuple<int, int, String>(008, 214, "4")},
-            {"05", new Tuple<int, int, String>(051, 231, "2")},
-            {"19", new Tuple<int, int, String>(188, 008, "3")},
-            {"23", new Tuple<int, int, String>(231, 051, "1")},
+            {"01", new Tuple<int, int, string>(008, 214, "4")},
+            {"05", new Tuple<int, int, string>(051, 231, "2")},
+            {"19", new Tuple<int, int, string>(188, 008, "3")},
+            {"23", new Tuple<int, int, string>(231, 051, "1")},
         };
 
         /// <summary>
         /// Constructor of RunwayInfo class. Initializes new instance of RunwayInfo.
         /// </summary>
-        /// <param name="dutchVACCATISGenerator">Parent DutchVACCATISGenerator.</param>
         /// <param name="metar">METAR processed in DutchVACCATISGenerator.</param>
-        public RunwayInfo(DutchVACCATISGenerator dutchVACCATISGenerator, Metar metar)
+        public RunwayInfo(Metar metar, int left, int bottom, string icao)
         {
             InitializeComponent();
-           
-            this.dutchVACCATISGenerator = dutchVACCATISGenerator;
-            this.metar = metar;
 
-            //TODO Fixen
-            //setVisibleRunwayInfoDataGrid(this.dutchVACCATISGenerator.ICAOTabControl.SelectedTab.Text);
+            //Set form position relative to Dutch VACC ATIS Generator form.
+            _left = left;
+            _bottom = bottom;
+            
+            _metar = metar;
+
+            setVisibleRunwayInfoDataGrid(icao);
 
             //Set runway friction combo box selection to first item.
             runwayFrictionComboBox.SelectedIndex = 0;
@@ -100,7 +102,7 @@ namespace DutchVACCATISGenerator.Forms
         /// Sets runway info data grid to be visible depending on the selected ICAO tab in DutchVACCATISGenerator.
         /// </summary>
         /// <param name="icaoTab">ICAO tab selected.</param>
-        public void setVisibleRunwayInfoDataGrid(String icaoTab)
+        public void setVisibleRunwayInfoDataGrid(string icaoTab)
         {
             switch (icaoTab)
             {
@@ -126,7 +128,7 @@ namespace DutchVACCATISGenerator.Forms
         /// Selects a dictionary to process depending on the selected ICAO tab in DutchVACCATISGenerator.
         /// </summary>
         /// <param name="icaoTab">ICAO tab selected.</param>
-        private void ICAODirectoryToProcess(String icaoTab)
+        private void ICAODirectoryToProcess(string icaoTab)
         {
             switch (icaoTab)
             {
@@ -156,7 +158,7 @@ namespace DutchVACCATISGenerator.Forms
             //Clear the EHAM landing runway info DataGridView.
             EHAMlandingRunwayInfoDataGridView.Rows.Clear();
 
-            foreach (KeyValuePair<string, Tuple<int, int, String, String>> pair in EHAMlandingRunways)
+            foreach (KeyValuePair<string, Tuple<int, int, string, string>> pair in EHAMlandingRunways)
             {
                 DataGridViewRow row = new DataGridViewRow();
                 row.CreateCells(EHAMlandingRunwayInfoDataGridView);
@@ -174,7 +176,7 @@ namespace DutchVACCATISGenerator.Forms
             //Clear the EHAM departure runway info DataGridView.
             EHAMdepartureRunwayInfoDataGridView.Rows.Clear();
 
-            foreach (KeyValuePair<string, Tuple<int, int, String, String>> pair in EHAMdepartureRunways)
+            foreach (KeyValuePair<string, Tuple<int, int, string, string>> pair in EHAMdepartureRunways)
             {
                 DataGridViewRow row = new DataGridViewRow();
                 row.CreateCells(EHAMdepartureRunwayInfoDataGridView);
@@ -196,12 +198,12 @@ namespace DutchVACCATISGenerator.Forms
         /// Fills the runway info data grids.
         /// </summary>
         /// <param name="runways">Dictionary to process.</param>
-        private void fillRunwayInfoDataGrid(Dictionary<String, Tuple<int, int, String>> runways)
+        private void fillRunwayInfoDataGrid(Dictionary<string, Tuple<int, int, string>> runways)
         {
             //Clear the runway info DataGridView.
             runwayInfoDataGridView.Rows.Clear();
 
-            foreach (KeyValuePair<string, Tuple<int, int, String>> pair in runways)
+            foreach (KeyValuePair<string, Tuple<int, int, string>> pair in runways)
             {
                 DataGridViewRow row = new DataGridViewRow();
                 row.CreateCells(runwayInfoDataGridView);
@@ -244,15 +246,15 @@ namespace DutchVACCATISGenerator.Forms
         private int calculateTailwindComponent(int runwayHeading)
         {
             //If METAR has a gust wind.
-            if(metar.Wind.windGustMin != null)
+            if(_metar.Wind.WindGustMin != null)
             {
                 //If gust is greater than 10 knots, include gust wind.
-                if (Math.Abs(Convert.ToInt32(metar.Wind.windGustMax) - Convert.ToInt32(metar.Wind.windGustMin)) >= 10) return Convert.ToInt32(Math.Cos(degreeToRadian(Math.Abs(Convert.ToInt32(metar.Wind.windHeading) - runwayHeading))) * Convert.ToInt32(metar.Wind.windGustMax));
+                if (Math.Abs(Convert.ToInt32(_metar.Wind.WindGustMax) - Convert.ToInt32(_metar.Wind.WindGustMin)) >= 10) return Convert.ToInt32(Math.Cos(degreeToRadian(Math.Abs(Convert.ToInt32(_metar.Wind.WindHeading) - runwayHeading))) * Convert.ToInt32(_metar.Wind.WindGustMax));
                 
                 //Else do not include gust, calculate with min gust wind.
-                else return Convert.ToInt32(Math.Cos(degreeToRadian(Math.Abs(Convert.ToInt32(metar.Wind.windHeading) - runwayHeading))) * Convert.ToInt32(metar.Wind.windGustMin)); 
+                else return Convert.ToInt32(Math.Cos(degreeToRadian(Math.Abs(Convert.ToInt32(_metar.Wind.WindHeading) - runwayHeading))) * Convert.ToInt32(_metar.Wind.WindGustMin)); 
             }
-            else return Convert.ToInt32(Math.Cos(degreeToRadian(Math.Abs(Convert.ToInt32(metar.Wind.windHeading) - runwayHeading))) * Convert.ToInt32(metar.Wind.windKnots));
+            else return Convert.ToInt32(Math.Cos(degreeToRadian(Math.Abs(Convert.ToInt32(_metar.Wind.WindHeading) - runwayHeading))) * Convert.ToInt32(_metar.Wind.WindKnots));
         }
 
         /// <summary>
@@ -265,15 +267,15 @@ namespace DutchVACCATISGenerator.Forms
             int crosswind;
 
             //If METAR has a gust wind.
-            if(metar.Wind.windGustMin != null)
+            if(_metar.Wind.WindGustMin != null)
             {
                 //If gust is greater than 10 knots, include gust wind.
-                if (Math.Abs(Convert.ToInt32(metar.Wind.windGustMax) - Convert.ToInt32(metar.Wind.windGustMin)) >= 10) crosswind = Convert.ToInt32(Math.Sin(degreeToRadian(Math.Abs(Convert.ToInt32(metar.Wind.windHeading) - runwayHeading))) * Convert.ToInt32(metar.Wind.windGustMax));
+                if (Math.Abs(Convert.ToInt32(_metar.Wind.WindGustMax) - Convert.ToInt32(_metar.Wind.WindGustMin)) >= 10) crosswind = Convert.ToInt32(Math.Sin(degreeToRadian(Math.Abs(Convert.ToInt32(_metar.Wind.WindHeading) - runwayHeading))) * Convert.ToInt32(_metar.Wind.WindGustMax));
 
                 //Else do not include gust, calculate with min gust wind.
-                else crosswind = Convert.ToInt32(Math.Sin(degreeToRadian(Math.Abs(Convert.ToInt32(metar.Wind.windHeading) - runwayHeading))) * Convert.ToInt32(metar.Wind.windGustMin));
+                else crosswind = Convert.ToInt32(Math.Sin(degreeToRadian(Math.Abs(Convert.ToInt32(_metar.Wind.WindHeading) - runwayHeading))) * Convert.ToInt32(_metar.Wind.WindGustMin));
             }
-            else crosswind = Convert.ToInt32(Math.Sin(degreeToRadian(Math.Abs(Convert.ToInt32(metar.Wind.windHeading) - runwayHeading))) * Convert.ToInt32(metar.Wind.windKnots));
+            else crosswind = Convert.ToInt32(Math.Sin(degreeToRadian(Math.Abs(Convert.ToInt32(_metar.Wind.WindHeading) - runwayHeading))) * Convert.ToInt32(_metar.Wind.WindKnots));
 
             //If calculated crosswind is negative, multiply by -1 to make it positive.
             if (crosswind < -0) return crosswind * -1;
@@ -293,21 +295,22 @@ namespace DutchVACCATISGenerator.Forms
         /// <summary>
         /// Set RunwayInform position relative to DutchVACCATISGenerator.
         /// </summary>
-        /// <param name="dutchVACCATISGenerator">Parent DutchVACCATISGenerator.</param>
-        public void showRelativeToDutchVACCATISGenerator(DutchVACCATISGenerator dutchVACCATISGenerator)
+        /// <param name="left">Left position of Dutch VACC ATIS Generator form</param>
+        /// <param name="bottom">Right position of Dutch VACC ATIS Generator form</param>
+        public void ShowRelativeToDutchVACCATISGenerator(int left, int bottom)
         {
-            this.Left = dutchVACCATISGenerator.Right;
-            this.Top = dutchVACCATISGenerator.Top;
-            this.Refresh();
+            Left = left;
+            Top = bottom;
+            Refresh();
         }
-  
+
         /// <summary>
         /// Check if a runway complies with weather criteria for a runway.
         /// </summary>
         /// <param name="crosswind">Runway cross wind component.</param>
         /// <param name="tailwind">Runway tail wind component.</param>
         /// <returns>Indication if the a runway complies with the weather criteria for that runway.</returns>
-        private String checkRunwayComply(String rwy, int crosswind, int tailwind)
+        private string checkRunwayComply(string rwy, int crosswind, int tailwind)
         {
             switch(runwayFrictionComboBox.SelectedIndex)
             {
@@ -331,21 +334,21 @@ namespace DutchVACCATISGenerator.Forms
         private Boolean checkRunwayVisbility(string rwy)
         {
             //If METAR has a RVR.
-            if(metar.RVR)
+            if(_metar.RVR)
             {
-                foreach (KeyValuePair<String, int> pair in metar.RVRValues)
+                foreach (KeyValuePair<string, int> pair in _metar.RVRValues)
                 {
                     //Check if runway complies with RVR criteria based on the RWY RVR value.
                     if (pair.Key.Equals(rwy)) return runwayCompliesWithRVR(pair.Value);
                 }
 
                 //Check if runway complies with RVR criteria based on the visibility.
-                return runwayCompliesWithRVR(metar.Visibility);
+                return runwayCompliesWithRVR(_metar.Visibility);
             }
             else
             {
                 //If cloud layer > 200 feet.
-                if (metar.Clouds.Count != 0 ? metar.Clouds.First().altitude >= 2 : true) return true;
+                if (_metar.Clouds.Count != 0 ? _metar.Clouds.First().Altitude >= 2 : true) return true;
                 else return false;
             }
         }
@@ -358,10 +361,10 @@ namespace DutchVACCATISGenerator.Forms
         private Boolean runwayCompliesWithRVR(int rvr)
         {
             //If RVR > 500 and cloud layer is > 200 feet.
-            if (rvr >= 550 && (metar.Clouds.Count != 0 ? metar.Clouds.First().altitude >= 2 : true)) return true;
+            if (rvr >= 550 && (_metar.Clouds.Count != 0 ? _metar.Clouds.First().Altitude >= 2 : true)) return true;
 
             //If RVR < 500 and cloud layer is < 200 feet.
-            else if (rvr < 550 || (metar.Clouds.Count != 0 && metar.Clouds.First().altitude < 2)) return false;
+            else if (rvr < 550 || (_metar.Clouds.Count != 0 && _metar.Clouds.First().Altitude < 2)) return false;
             else return false;
         }
 
@@ -373,7 +376,7 @@ namespace DutchVACCATISGenerator.Forms
         /// <param name="crosswind">Actual crosswind component.</param>
         /// <param name="tailwind">Actual tailwind component.</param>
         /// <returns>Indication if the a runway complies with the weather criteria for that runway.</returns>
-        private String checkRunwayComplyWithWind(int maxCrosswind, int maxTailWind, int crosswind, int tailwind)
+        private string checkRunwayComplyWithWind(int maxCrosswind, int maxTailWind, int crosswind, int tailwind)
         {
             //If runway complies with criteria return OK.
             if (crosswind <= maxCrosswind && tailwind <= maxTailWind) return "OK";
@@ -389,7 +392,7 @@ namespace DutchVACCATISGenerator.Forms
         /// <param name="e">Event arguments</param>
         private void RunwayInfo_Load(object sender, EventArgs e)
         {
-            showRelativeToDutchVACCATISGenerator(dutchVACCATISGenerator);
+            ShowRelativeToDutchVACCATISGenerator(_left, _bottom);
         }
         
         /// <summary>
@@ -409,7 +412,7 @@ namespace DutchVACCATISGenerator.Forms
         {
             //TODO Fixen
             ////Check if selected ICAO tab matches the ICAO of the processed METAR.
-            //if (!(metar.ICAO.Equals(dutchVACCATISGenerator.ICAOTabControl.SelectedTab.Text))) MessageBox.Show(String.Format("Last processed METAR ICAO does not match the selected ICAO tab.\nRunway criteria will be calculated of the wrong METAR ({0})!", metar.ICAO), "Warning");
+            //if (!(_metar.ICAO.Equals(dutchVACCATISGenerator.ICAOTabControl.SelectedTab.Text))) MessageBox.Show(String.Format("Last processed METAR ICAO does not match the selected ICAO tab.\nRunway criteria will be calculated of the wrong METAR ({0})!", _metar.ICAO), "Warning");
 
             ////If selected ICAO tab is EHAM.
             //if (!(dutchVACCATISGenerator.ICAOTabControl.SelectedTab.Text.Equals("EHAM"))) ICAODirectoryToProcess(dutchVACCATISGenerator.ICAOTabControl.SelectedTab.Text);
@@ -454,7 +457,7 @@ namespace DutchVACCATISGenerator.Forms
         /// Set runway combo box with best preferred runway for selected ICAO.
         /// </summary>
         /// <param name="icaoTab">ICAO tab selected.</param>
-        public void ICAOBestRunway(String icaoTab)
+        public void ICAOBestRunway(string icaoTab)
         {
             //TODO Fixen
             //switch (icaoTab)
@@ -485,10 +488,10 @@ namespace DutchVACCATISGenerator.Forms
         /// <param name="prefColumn">Array position of pref column</param>
         /// <param name="OKColumn">Array position of OK column</param>
         /// <returns></returns>
-        private String getBestRunway(DataGridView runwayInfoDataGridView, Dictionary<String, Tuple<int, int, String>> runwayList)
+        private string getBestRunway(DataGridView runwayInfoDataGridView, Dictionary<string, Tuple<int, int, string>> runwayList)
         {
             //Best runway holder.
-            String runwayString = String.Empty;
+            string runwayString = string.Empty;
             //Highest preference.
             int runwayPref = int.MaxValue;
 
@@ -502,9 +505,9 @@ namespace DutchVACCATISGenerator.Forms
                 }
             }
 
-            foreach (KeyValuePair<String, Tuple<int, int, String>> pair in runwayList)
+            foreach (KeyValuePair<string, Tuple<int, int, string>> pair in runwayList)
             {
-                if (runwayString.Equals(String.Empty))
+                if (runwayString.Equals(string.Empty))
                 {
                     runwayString = pair.Key;
                     runwayPref = Convert.ToInt32(pair.Value.Item3);

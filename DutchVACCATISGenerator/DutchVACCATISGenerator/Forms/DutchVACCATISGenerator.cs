@@ -10,7 +10,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using DutchVACCATISGenerator.Extensions;
-using DutchVACCATISGenerator.Logic.Metar;
+using DutchVACCATISGenerator.Logic;
 using DutchVACCATISGenerator.Properties;
 using DutchVACCATISGenerator.Workers;
 
@@ -442,7 +442,7 @@ namespace DutchVACCATISGenerator.Forms
         private void generateATISButton_Click(object sender, EventArgs e)
         {
             //If the ICAO code of the processed METAR doesn't equals the ICAO of the selected ICAO tab.
-            if (!_metarLogic._metarProcessor.metar.ICAO.Equals(ICAOTabControl.SelectedTab.Name))
+            if (!_metarLogic.Metar.ICAO.Equals(ICAOTabControl.SelectedTab.Name))
             {
                 //Show warning message.
                 MessageBox.Show("Selected ICAO tab does not match the ICAO of the processed METAR.", "Error");
@@ -527,7 +527,7 @@ namespace DutchVACCATISGenerator.Forms
                 getSelectBestRunwayButton.Text = "Select best runway";
 
                 //If selected ICAO equals the ICAO of the last processed METAR, enable the get select best runway button.
-                if (RunwayInfo != null && ICAOTabControl.SelectedTab.Name.Equals(RunwayInfo.metar.ICAO))
+                if (RunwayInfo != null && ICAOTabControl.SelectedTab.Name.Equals(RunwayInfo._metar.ICAO))
                     getSelectBestRunwayButton.Enabled = true;
                 //Else keep disable it.
                 else
@@ -592,7 +592,7 @@ namespace DutchVACCATISGenerator.Forms
         private void metarBackgroundWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
             //Get result.
-            var metar = (string) e.Result;
+            var metar = (string)e.Result;
 
             //Set pulled METAR in the METAR text box.
             metarTextBox.Text = metar;
@@ -727,10 +727,12 @@ namespace DutchVACCATISGenerator.Forms
 
             //Checks if ATIS index has to be increased.
             if (!(UserLetterSelection | RandomLetter | ICAOTabSwitched | (lastLabel.Text == string.Empty)))
+            {
                 if (ATISIndex == PhoneticAlphabet.Count - 1)
                     ATISIndex = 0;
                 else
                     ATISIndex++;
+            }
 
             //Set all letter booleans to false for next generation.
             RandomLetter = UserLetterSelection = ICAOTabSwitched = false;
@@ -750,24 +752,25 @@ namespace DutchVACCATISGenerator.Forms
 
             //Enable generate ATIS and runway info button.
             generateATISButton.Enabled = true;
-            runwayInfoButton.Enabled = runwayInfoToolStripMenuItem.Enabled = true;
+            //TODO Fixen
+            //runwayInfoButton.Enabled = runwayInfoToolStripMenuItem.Enabled = true;
+            
+            ////If runwayInfo is null, create RunwayInfo form.
+            //if (RunwayInfo != null && RunwayInfo.IsDisposed || RunwayInfo == null)
+            //{
+            //    RunwayInfo = new RunwayInfo(_metarLogic.Metar, Left, Bottom, ICAOTabControl.SelectedTab.Name);
+            //}
+            //else
+            //{
+            //    //Update runway info form.
+            //    RunwayInfo._metar = _metarLogic._metarProcessor.metar;
+            //    RunwayInfo.setVisibleRunwayInfoDataGrid(ICAOTabControl.SelectedTab.Text);
+            //    RunwayInfo.checkICAOTabSelected();
+            //}
 
-            //If runwayInfo is null, create RunwayInfo form.
-            if (RunwayInfo != null && RunwayInfo.IsDisposed || RunwayInfo == null)
-            {
-                RunwayInfo = new RunwayInfo(this, _metarLogic._metarProcessor.metar);
-            }
-            else
-            {
-                //Update runway info form.
-                RunwayInfo.metar = _metarLogic._metarProcessor.metar;
-                RunwayInfo.setVisibleRunwayInfoDataGrid(ICAOTabControl.SelectedTab.Text);
-                RunwayInfo.checkICAOTabSelected();
-            }
-
-            //If processed METAR equals the selected ICAO.
-            if (RunwayInfo.metar.ICAO.Equals(ICAOTabControl.SelectedTab.Name))
-                getSelectBestRunwayButton.Enabled = true;
+            ////If processed METAR equals the selected ICAO.
+            //if (RunwayInfo._metar.ICAO.Equals(ICAOTabControl.SelectedTab.Name))
+            //    getSelectBestRunwayButton.Enabled = true;
         }
 
         /// <summary>
@@ -970,7 +973,7 @@ namespace DutchVACCATISGenerator.Forms
 
         private void realRunwayBackgroundWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
-            var result = (Tuple<List<string>, List<string>>) e.Result;
+            var result = (Tuple<List<string>, List<string>>)e.Result;
 
             var deparuteRunways = result.Item1;
             var landingRunways = result.Item2;
@@ -1027,11 +1030,11 @@ namespace DutchVACCATISGenerator.Forms
         {
             //If selected tab is EHAM and EHAM (A - M) tool strip menu item is checked.
             if (ICAOTabControl.SelectedTab.Name.Equals("EHAM") && ehamToolStripMenuItem.Checked)
-                PhoneticAlphabet = new List<string> {"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M"};
+                PhoneticAlphabet = new List<string> { "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M" };
 
             //If selected tab is EHRD and EHRD (N - Z) tool strip menu item is checked.
             else if (ICAOTabControl.SelectedTab.Name.Equals("EHRD") && ehrdToolStripMenuItem.Checked)
-                PhoneticAlphabet = new List<string> {"N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"};
+                PhoneticAlphabet = new List<string> { "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z" };
 
             //Else set full phonetic alpha bet.
             else
@@ -1080,7 +1083,7 @@ namespace DutchVACCATISGenerator.Forms
             //If runway info form doesn't exists OR isn't visible.
             if (RunwayInfo == null || !RunwayInfo.Visible)
             {
-                RunwayInfo = new RunwayInfo(this, _metarLogic.Metar);
+                RunwayInfo = new RunwayInfo(_metarLogic.Metar, Left, Bottom, ICAOTabControl.SelectedTab.Name);
 
                 //Initialize new RunwayInfo form.
                 runwayInfoButton.Text = "<";
@@ -1089,7 +1092,7 @@ namespace DutchVACCATISGenerator.Forms
                 RunwayInfo.Show();
 
                 //Set runway info position relative to this.
-                RunwayInfo.showRelativeToDutchVACCATISGenerator(this);
+                RunwayInfo.ShowRelativeToDutchVACCATISGenerator(Left, Bottom);
 
                 //Inverse runway info state boolean.
                 RunwayInfoState = !RunwayInfoState;
@@ -1169,8 +1172,9 @@ namespace DutchVACCATISGenerator.Forms
                 TAF.Show();
 
                 //Register close event.
-                TAF.CloseEvent += delegate {
-                    tAFToolStripMenuItem.BackColor = SystemColors.Control;    
+                TAF.CloseEvent += delegate
+                {
+                    tAFToolStripMenuItem.BackColor = SystemColors.Control;
                 };
 
                 //Set TAF tool strip menu item back color to gradient active caption.
