@@ -9,7 +9,7 @@ namespace DutchVACCATISGenerator.Extensions
         /// </summary>
         /// <param name="atisLetter">Letter</param>
         /// <returns>String - Capitalized NATO word</returns>
-        public static string AtisLetterToFullSpelling(this string atisLetter)
+        public static string ATISLetterToFullSpelling(this string atisLetter)
         {
             return NATO_phonetic_alphabet.ResourceManager.GetString(atisLetter);
         }

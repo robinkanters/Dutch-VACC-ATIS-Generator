@@ -1,5 +1,4 @@
 ﻿using System.Linq;
-using DutchVACCATISGenerator.Types;
 
 namespace DutchVACCATISGenerator.Extensions
 {

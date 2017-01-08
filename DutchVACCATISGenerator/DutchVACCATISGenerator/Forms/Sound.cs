@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using DutchVACCATISGenerator.Extensions;
+using DutchVACCATISGenerator.Logic;
 using DutchVACCATISGenerator.Properties;
 using NAudio.Wave;
 
@@ -19,20 +20,24 @@ namespace DutchVACCATISGenerator.Forms
         private readonly int _bottom;
         private readonly int _left;
         private AudioFileReader _audio;
+        private readonly MetarLogic _metarLogic;
 
         /// <summary>
         ///     Constructor of Sound. Initializes new instance of Sound.
         /// </summary>
-        public Sound(bool enableBuild, int left, int bottom)
+        public Sound(bool enableBuild, int left, int bottom, MetarLogic metarLogic)
         {
             InitializeComponent();
+
+            //Enable the build ATIS button if the ATIS has already been build.
+            buildATISButton.Enabled = enableBuild;
 
             //Set form position relative to Dutch VACC ATIS Generator form.
             _left = left;
             _bottom = bottom;
 
-            //Enable the build ATIS button if the ATIS has already been build.
-            buildATISButton.Enabled = enableBuild;
+            //Set MetarLogic
+            _metarLogic = metarLogic;
 
             //Get and set the property of the path to the ATIS folder if it has been saved before.
             if (!Settings.Default.atisehamPath.Equals(string.Empty))
@@ -261,9 +266,8 @@ namespace DutchVACCATISGenerator.Forms
             buildATISButton.Enabled = false;
 
             //Build ATIS.
-            //TODO Fixen
-            //if (dutchVACCATISGenerator.atisSamples != null && dutchVACCATISGenerator.atisSamples.Count != 0)
-            //    buildAtis(dutchVACCATISGenerator.atisSamples);
+            if(_metarLogic.ATISSamples != null && _metarLogic.ATISSamples.Count != 0)
+                BuildAtis(_metarLogic.ATISSamples);
         }
 
         /// <summary>
@@ -386,9 +390,8 @@ namespace DutchVACCATISGenerator.Forms
             playATISButton.Text = "Play ATIS";
 
             //Re-enable the build ATIS button.
-            //TODO Fixen
-            //if (dutchVACCATISGenerator.atisSamples != null && dutchVACCATISGenerator.atisSamples.Count != 0)
-            //    buildATISButton.Enabled = true;
+            if (_metarLogic.ATISSamples != null && _metarLogic.ATISSamples.Count != 0)
+                BuildAtis(_metarLogic.ATISSamples);
 
             //Dispose the AudioFileReader to release the file.
             try

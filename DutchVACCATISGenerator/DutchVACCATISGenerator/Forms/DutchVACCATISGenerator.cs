@@ -69,7 +69,7 @@ namespace DutchVACCATISGenerator.Forms
                 autoGenerateATISBackgroundWorker.RunWorkerAsync();
 
             //Initialize sound form.
-            Sound = new Sound(!outputTextBox.Text.Trim().Equals(string.Empty), Left, Bottom);
+            Sound = new Sound(!outputTextBox.Text.Trim().Equals(string.Empty), Left, Bottom, _metarLogic);
         }
 
         private int ATISIndex { get; set; }
@@ -720,11 +720,7 @@ namespace DutchVACCATISGenerator.Forms
                 MessageBox.Show("Error parsing the METAR, check if METAR is in correct format.", "Error");
                 return;
             }
-
-            //Clear output and METAR text box.
-            outputTextBox.Clear();
-            metarTextBox.Clear();
-
+            
             //Checks if ATIS index has to be increased.
             if (!(UserLetterSelection | RandomLetter | ICAOTabSwitched | (lastLabel.Text == string.Empty)))
             {
@@ -750,11 +746,15 @@ namespace DutchVACCATISGenerator.Forms
             //Set ATIS letter in ATIS letter label.
             atisLetterLabel.Text = PhoneticAlphabet[ATISIndex];
 
+            //Clear output and METAR text box.
+            outputTextBox.Clear();
+            metarTextBox.Clear();
+
             //Enable generate ATIS and runway info button.
             generateATISButton.Enabled = true;
+            runwayInfoButton.Enabled = runwayInfoToolStripMenuItem.Enabled = true;
+
             //TODO Fixen
-            //runwayInfoButton.Enabled = runwayInfoToolStripMenuItem.Enabled = true;
-            
             ////If runwayInfo is null, create RunwayInfo form.
             //if (RunwayInfo != null && RunwayInfo.IsDisposed || RunwayInfo == null)
             //{

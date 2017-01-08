@@ -1,5 +1,4 @@
-﻿using System;
-using DutchVACCATISGenerator.Types;
+﻿using DutchVACCATISGenerator.Types;
 
 namespace DutchVACCATISGenerator.Extensions
 {
