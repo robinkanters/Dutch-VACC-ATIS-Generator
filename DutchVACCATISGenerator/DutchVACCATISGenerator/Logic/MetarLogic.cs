@@ -4,23 +4,44 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using DutchVACCATISGenerator.Extensions;
+using DutchVACCATISGenerator.Resources;
 using DutchVACCATISGenerator.Types;
 
 namespace DutchVACCATISGenerator.Logic
 {
-    public class MetarLogic
+    public interface IMetarLogic
+    {
+        List<string> ATISSamples { get; set; }
+        Metar Metar { get; set; }
+        void AddToAtisSamples(string sample);
+
+        /// <summary>
+        ///     Calculate transition level from QNH and temperature.
+        /// </summary>
+        /// <returns>Calculated TL</returns>
+        int CalculateTransitionLevel();
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="atisLetter"></param>
+        /// <param name="runwaySelection"></param>
+        /// <param name="extra"></param>
+        /// <param name="copyToClipboard"></param>
+        /// <returns></returns>
+        string GenerateAtis(string atisLetter, Dictionary<string, bool> runwaysChecked, Dictionary<string, string> runwaySelection, bool wind, bool extra, bool copyToClipboard);
+
+        /// <summary>
+        /// </summary>
+        void ProcessMetar(string metar);
+    }
+
+    public class MetarLogic : IMetarLogic
     {
         public List<string> ATISSamples { get; set; }
         public Metar Metar { get; set; }
 
-        private void addIndividualDigitsToATISSamples(string input)
-        {
-            var processed = Regex.Split(input, @"([0-9])");
 
-            foreach (var digit in processed)
-                if (!string.IsNullOrEmpty(digit))
-                    ATISSamples.Add(digit);
-        }
 
         public void AddToAtisSamples(string sample)
         {
@@ -33,95 +54,57 @@ namespace DutchVACCATISGenerator.Logic
         /// <returns>Calculated TL</returns>
         public int CalculateTransitionLevel()
         {
-            int temp;
-
             //If METAR contains M (negative value), multiply by -1 to make an negative integer.
-            if (Metar.Temperature.StartsWith("M"))
-                temp = Convert.ToInt32(Metar.Temperature.Substring(1)) * -1;
-
-            else
-                temp = Convert.ToInt32(Metar.Temperature);
+            var temp = Metar.Temperature.StartsWith("M")
+                ? Convert.ToInt32(Metar.Temperature.Substring(1)) * -1
+                : Convert.ToInt32(Metar.Temperature);
 
             //Calculate TL level. TL = 307.8-0.13986*T-0.26224*Q (thanks to Stefan Blauw for this formula).
-            return (int) Math.Ceiling((307.8 - 0.13986 * temp - 0.26224 * Metar.QNH) / 5) * 5;
+            return (int)Math.Ceiling((307.8 - 0.13986 * temp - 0.26224 * Metar.QNH) / 5) * 5;
         }
 
-        public void GenerateAtis()
+        private void AddIndividualDigitsToATISSamples(string input)
+        {
+            var processed = Regex.Split(input, @"([0-9])");
+
+            foreach (var digit in processed)
+                if (!string.IsNullOrEmpty(digit))
+                    ATISSamples.Add(digit);
+        }
+
+        public string GenerateAtis(string atisLetter, Dictionary<string, bool> runwaysChecked, Dictionary<string, string> runwaySelection, bool wind, bool extra, bool copyToClipboard)
         {
             ATISSamples = new List<string>();
 
             var output = string.Empty;
 
-            #region ICAO
-
-            //Generate output from processed METAR ICAO.
-            switch (Metar.ICAO)
-            {
-                //If processed ICAO is EHAM.
-                case "EHAM":
-                    ATISSamples.Add("ehamatis");
-                    output += "THIS IS SCHIPHOL INFORMATION";
-                    break;
-
-                //If processed ICAO is EHBK.
-                case "EHBK":
-                    ATISSamples.Add("ehbkatis");
-                    output += "THIS IS BEEK INFORMATION";
-                    break;
-
-                //If processed ICAO is EHEH.
-                case "EHEH":
-                    ATISSamples.Add("ehehatis");
-                    output += "THIS IS EINDHOVEN INFORMATION";
-                    break;
-
-                //If processed ICAO is EHGG.
-                case "EHGG":
-                    ATISSamples.Add("ehggatis");
-                    output += "THIS IS EELDE INFORMATION";
-                    break;
-
-                //If processed ICAO is EHRD.
-                case "EHRD":
-                    ATISSamples.Add("ehrdatis");
-                    output += "THIS IS ROTTERDAM INFORMATION";
-                    break;
-            }
-
-            #endregion
-
-            #region ATIS LETTER
+            //Add resource.
+            output += ICAO.ResourceManager.GetString(Metar.ICAO);
+            ATISSamples.AddICAO(Metar.ICAO);
 
             //Add ATIS letter to output
-            //TODO Fixen
-            //output += " " + PhoneticAlphabet[ATISIndex].ATISLetterToFullSpelling();
+            output += " " + atisLetter.ATISLetterToFullSpelling();
+            ATISSamples.Add(atisLetter);
 
-            #endregion
-
+            //Add pause.
             ATISSamples.Add("pause");
 
-            #region RUNWAYS
-
             //Add runway output to output.
-            output += generateRunwayOutput();
-
-            #endregion
-
-            #region TL
+            output += GenerateRunwayOutput(Metar.ICAO, runwaysChecked, runwaySelection);
 
             //Add transition level to output.
             ATISSamples.Add("trl");
-            output += " TRANSITION LEVEL";
-            //Calculate and add transition level to output.
-            addIndividualDigitsToATISSamples(CalculateTransitionLevel().ToString());
-            output += " " + CalculateTransitionLevel();
+            output += " " + ATIS.TL;
 
-            #endregion
+            //Calculate and add transition level to output.
+            var transitionLevel = CalculateTransitionLevel();
+            AddIndividualDigitsToATISSamples(transitionLevel.ToString());
+            output += " " + transitionLevel;
 
             #region OPERATIONAL REPORTS
 
             //Generate and add operational report to output.
-            output += operationalReportToOutput();
+            output += OperationalReportToOutput();
 
             #endregion
 
@@ -130,13 +113,14 @@ namespace DutchVACCATISGenerator.Logic
             #region WIND
 
             //If processed METAR has wind, generate and add wind output to output. 
-            //TODO Fixen
-            //if (addWindRecordCheckBox.Checked)
-            //{
-            //    atisSamples.Add("wind");
-            //    output += " WIND";
-            //}
-            if (Metar.Wind != null) output += windToOutput(Metar.Wind);
+            if (wind)
+            {
+                ATISSamples.Add("wind");
+                output += " " + ATIS.WIND;
+            }
+
+            if (Metar.Wind != null)
+                output += WindToOutput(Metar.Wind);
 
             #endregion
 
@@ -154,7 +138,7 @@ namespace DutchVACCATISGenerator.Logic
             #region VISIBILITY
 
             //If processed METAR has a visibility greater than 0, generate and add visibility output to output. 
-            if (Metar.Visibility > 0) output += visibilityToOutput(Metar.Visibility);
+            if (Metar.Visibility > 0) output += VisibilityToOutput(Metar.Visibility);
 
             #endregion
 
@@ -172,7 +156,7 @@ namespace DutchVACCATISGenerator.Logic
             #region PHENOMENA
 
             //Generate and add weather phenomena to output.
-            output += listToOutput(Metar.Phenomena);
+            output += ListToOutput(Metar.Phenomena);
 
             #endregion
 
@@ -196,7 +180,7 @@ namespace DutchVACCATISGenerator.Logic
             #region CLOUDS
 
             //Generate and add weather clouds to output. 
-            output += listToOutput(Metar.Clouds);
+            output += ListToOutput(Metar.Clouds);
 
             #endregion
 
@@ -206,7 +190,7 @@ namespace DutchVACCATISGenerator.Logic
             if (Metar.VerticalVisibility > 0)
             {
                 ATISSamples.Add("vv");
-                addIndividualDigitsToATISSamples(Metar.VerticalVisibility.ToString());
+                AddIndividualDigitsToATISSamples(Metar.VerticalVisibility.ToString());
                 ATISSamples.Add("hunderd");
                 ATISSamples.Add("meters");
 
@@ -226,14 +210,14 @@ namespace DutchVACCATISGenerator.Logic
             {
                 ATISSamples.Add("minus");
 
-                addIndividualDigitsToATISSamples(Convert.ToInt32(Metar.Temperature.Substring(1, 2)).ToString());
+                AddIndividualDigitsToATISSamples(Convert.ToInt32(Metar.Temperature.Substring(1, 2)).ToString());
 
                 output += " MINUS " + Convert.ToInt32(Metar.Temperature.Substring(1, 2));
             }
             //Positive temperature.
             else
             {
-                addIndividualDigitsToATISSamples(Convert.ToInt32(Metar.Temperature).ToString());
+                AddIndividualDigitsToATISSamples(Convert.ToInt32(Metar.Temperature).ToString());
 
                 output += " " + Convert.ToInt32(Metar.Temperature);
             }
@@ -251,7 +235,7 @@ namespace DutchVACCATISGenerator.Logic
             {
                 ATISSamples.Add("minus");
 
-                addIndividualDigitsToATISSamples(Convert.ToInt32(Metar.Dewpoint.Substring(1, 2)).ToString());
+                AddIndividualDigitsToATISSamples(Convert.ToInt32(Metar.Dewpoint.Substring(1, 2)).ToString());
 
                 output += " MINUS " + Convert.ToInt32(Metar.Dewpoint.Substring(1, 2));
             }
@@ -259,7 +243,7 @@ namespace DutchVACCATISGenerator.Logic
             //Positive dewpoint.
             else
             {
-                addIndividualDigitsToATISSamples(Convert.ToInt32(Metar.Dewpoint).ToString());
+                AddIndividualDigitsToATISSamples(Convert.ToInt32(Metar.Dewpoint).ToString());
 
                 output += " " + Convert.ToInt32(Metar.Dewpoint);
             }
@@ -271,7 +255,7 @@ namespace DutchVACCATISGenerator.Logic
             //Add QNH to output.
             ATISSamples.Add("qnh");
             output += " QNH";
-            addIndividualDigitsToATISSamples(Metar.QNH.ToString());
+            AddIndividualDigitsToATISSamples(Metar.QNH.ToString());
             output += " " + Metar.QNH;
             ATISSamples.Add("hpa");
             output += " HECTOPASCAL";
@@ -301,7 +285,7 @@ namespace DutchVACCATISGenerator.Logic
                 #region TEMPO WIND
 
                 //If processed TEMPO trend has wind, generate and add wind output to output. 
-                if (Metar.MetarTEMPO.Wind != null) output += windToOutput(Metar.MetarTEMPO.Wind);
+                if (Metar.MetarTEMPO.Wind != null) output += WindToOutput(Metar.MetarTEMPO.Wind);
 
                 #endregion
 
@@ -319,14 +303,14 @@ namespace DutchVACCATISGenerator.Logic
                 #region TEMPO VISIBILITY
 
                 //If processed TEMPO trend has a visibility greater than 0, generate and add visibility output to output. 
-                if (Metar.MetarTEMPO.Visibility > 0) output += visibilityToOutput(Metar.MetarTEMPO.Visibility);
+                if (Metar.MetarTEMPO.Visibility > 0) output += VisibilityToOutput(Metar.MetarTEMPO.Visibility);
 
                 #endregion
 
                 #region TEMPO PHENOMENA
 
                 //If TEMPO trend has 1 or more weather phenomena, generate and add TEMPO trend weather phenomena to output.
-                if (Metar.MetarTEMPO.Phenomena.Count > 0) output += listToOutput(Metar.MetarTEMPO.Phenomena);
+                if (Metar.MetarTEMPO.Phenomena.Count > 0) output += ListToOutput(Metar.MetarTEMPO.Phenomena);
 
                 #endregion
 
@@ -355,7 +339,7 @@ namespace DutchVACCATISGenerator.Logic
                 #region TEMPO CLOUDS
 
                 //If TEMPO trend has 1 or more weather clouds, generate and add TEMPO weather clouds to output. 
-                if (Metar.MetarTEMPO.Clouds.Count > 0) output += listToOutput(Metar.MetarTEMPO.Clouds);
+                if (Metar.MetarTEMPO.Clouds.Count > 0) output += ListToOutput(Metar.MetarTEMPO.Clouds);
 
                 #endregion
 
@@ -365,7 +349,7 @@ namespace DutchVACCATISGenerator.Logic
                 if (Metar.MetarTEMPO.VerticalVisibility > 0)
                 {
                     ATISSamples.Add("vv");
-                    addIndividualDigitsToATISSamples(Metar.MetarTEMPO.VerticalVisibility.ToString());
+                    AddIndividualDigitsToATISSamples(Metar.MetarTEMPO.VerticalVisibility.ToString());
                     ATISSamples.Add("hunderd");
                     ATISSamples.Add("meters");
 
@@ -389,7 +373,7 @@ namespace DutchVACCATISGenerator.Logic
                 #region BECMG WIND
 
                 //If processed BECMG trend has wind, generate and add wind output to output.
-                if (Metar.MetarBECMG.Wind != null) output += windToOutput(Metar.MetarBECMG.Wind);
+                if (Metar.MetarBECMG.Wind != null) output += WindToOutput(Metar.MetarBECMG.Wind);
 
                 #endregion
 
@@ -407,14 +391,14 @@ namespace DutchVACCATISGenerator.Logic
                 #region BECMG VISIBILITY
 
                 //If processed BECMG trend has a visibility greater than 0, generate and add visibility output to output. 
-                if (Metar.MetarBECMG.Visibility > 0) output += visibilityToOutput(Metar.MetarBECMG.Visibility);
+                if (Metar.MetarBECMG.Visibility > 0) output += VisibilityToOutput(Metar.MetarBECMG.Visibility);
 
                 #endregion
 
                 #region BECMG PHENOMENA
 
                 //If BECMG trend has 1 or more weather phenomena, generate and add BECMG trend weather phenomena to output.
-                if (Metar.MetarBECMG.Phenomena.Count > 0) output += listToOutput(Metar.MetarBECMG.Phenomena);
+                if (Metar.MetarBECMG.Phenomena.Count > 0) output += ListToOutput(Metar.MetarBECMG.Phenomena);
 
                 #endregion
 
@@ -443,7 +427,7 @@ namespace DutchVACCATISGenerator.Logic
                 #region BECMG CLOUDS
 
                 //If BECMG trend has 1 or more weather clouds, generate and add BECMG weather clouds to output. 
-                if (Metar.MetarBECMG.Clouds.Count > 0) output += listToOutput(Metar.MetarBECMG.Clouds);
+                if (Metar.MetarBECMG.Clouds.Count > 0) output += ListToOutput(Metar.MetarBECMG.Clouds);
 
                 #endregion
 
@@ -453,7 +437,7 @@ namespace DutchVACCATISGenerator.Logic
                 if (Metar.MetarBECMG.VerticalVisibility > 0)
                 {
                     ATISSamples.Add("vv");
-                    addIndividualDigitsToATISSamples(Metar.MetarBECMG.VerticalVisibility.ToString());
+                    AddIndividualDigitsToATISSamples(Metar.MetarBECMG.VerticalVisibility.ToString());
                     ATISSamples.Add("hunderd");
                     ATISSamples.Add("meters");
 
@@ -495,158 +479,140 @@ namespace DutchVACCATISGenerator.Logic
 
             #endregion
 
-            #region END
-
             //Add end to output.
             ATISSamples.Add("end");
-            output += " END OF INFORMATION";
-            //TODO Fixen
-            //output += " " + PhoneticAlphabet[ATISIndex].ATISLetterToFullSpelling();
+            output += " " + ATIS.END;
 
-            #endregion
+            ATISSamples.Add(atisLetter);
+            output += " " + atisLetter.ATISLetterToFullSpelling();
 
-            #region USER WAVE
-
-            //if (userDefinedExtraCheckBox.Checked)
-            //{
-            //    atisSamples.Add("extra");
-            //    output += " EXTRA (VOICE ONLY)";
-            //}
-
-            #endregion
+            if (extra)
+            {
+                ATISSamples.Add("extra");
+                output += "  " + ATIS.EXTRA;
+            }
 
             //If copy output check box is checked, copy ATIS output to clipboard.
-            //if (copyOutputCheckBox.Checked) Clipboard.SetText(output);
-
-            //Set generated ATIS output in output text box.
-            //outputTextBox.Text = output;
+            if (copyToClipboard)
+                Clipboard.SetText(output);
 
 #if DEBUG
             Console.WriteLine();
 
             foreach (var sample in ATISSamples)
-                if (sample.All(char.IsDigit))
-                    Console.Write(sample);
-
-                else
-                    Console.Write("[" + sample + "]");
+                Console.Write(sample + " ");
 
             Console.WriteLine();
 #endif
 
             //Build ATIS file.
             //sound.buildAtis(atisSamples);
+
+            return output;
         }
 
         /// <summary>
         ///     Method to generate route output.
         /// </summary>
         /// <returns>String containing the runway output of the selected airport tab.</returns>
-        private string generateRunwayOutput()
+        private string GenerateRunwayOutput(string icao, Dictionary<string, bool> runwaysChecked, Dictionary<string, string> runwaySelection)
         {
-            return string.Empty;
-            //TODO Fixen
-            //String output = String.Empty;
+            var output = string.Empty;
 
-            //switch (ICAOTabControl.SelectedTab.Name)
-            //{
-            //    #region EHAM
-            //    //If selected ICAO tab is EHAM.
-            //    case "EHAM":
-            //        #region EHAM MAIN LANDING RUNWAY
-            //        //If the EHAM main landing runway check box is checked AND the EHAM main landing runway combo box value doesn't equal the EHAM main departure runway combo box value, generate runway output with value from EHAM main landing runway combo box.
-            //        if (EHAMmainLandingRunwayCheckBox.Checked && !EHAMmainLandingRunwayComboBox.Text.Equals(EHAMmainDepartureRunwayComboBox.Text))
-            //        {
-            //            atisSamples.Add("mlrwy");
-            //            output += runwayToOutput(" MAIN LANDING RUNWAY", EHAMmainLandingRunwayComboBox);
-            //        }
-            //        //Else generate runway output with the value from the EHAM main landing runway combo box.
-            //        else
-            //        {
-            //            atisSamples.Add("mlrwy");
-            //            output += runwayToOutput(" MAIN LANDING RUNWAY", EHAMmainLandingRunwayComboBox);
-            //        }
-            //        #endregion
+            switch (icao)
+            {
+                #region EHAM
+                case "EHAM":
+                    //EHAM main landing runway.
+                    if (runwaysChecked["EHAMmainLandingRunwayCheckBox"])
+                    {
+                        ATISSamples.Add("mlrwy");
+                        output += " " + ATIS.MLR;
 
-            //        #region EHAM SECONDARY LANDING RUNWAY
-            //        //If the EHAM secondary landing runway check box is checked, generate runway output with the value from the EHAM secondary landing runway combo box.
-            //        if (EHAMsecondaryLandingRunwayCheckBox.Checked)
-            //        {
-            //            atisSamples.Add("slrwy");
-            //            output += runwayToOutput(" SECONDARY LANDING RUNWAY", EHAMsecondaryLandingRunwayComboBox);
-            //        }
-            //        #endregion
+                        output += RunwayToOutput(runwaySelection["EHAMmainLandingRunwayComboBox"]);
+                    }
 
-            //        #region EHAM MAIN DEPARTURE RUNWAY
-            //        //If the EHAM main departure runway check box is checked, generate runway output with the value from the EHAM main departure runway combo box.
-            //        if (EHAMmainDepartureRunwayCheckBox.Checked && !EHAMmainLandingRunwayComboBox.Text.Equals(EHAMmainDepartureRunwayComboBox.Text))
-            //        {
-            //            atisSamples.Add("mtrwy");
-            //            output += runwayToOutput(" MAIN TAKEOFF RUNWAY", EHAMmainDepartureRunwayComboBox);
-            //        }
-            //        #endregion
+                    //EHAM secondary landing runway.
+                    if (runwaysChecked["EHAMsecondaryLandingRunwayCheckBox"])
+                    {
+                        ATISSamples.Add("slrwy");
+                        output += " " + ATIS.SLR;
 
-            //        #region EHAM SECONDARY DEPARTURE RUNWAY
-            //        //If the EHAM secondary departure runway check box is checked, generate runway output with the value from the EHAM secondary departure runway combo box.
-            //        if (EHAMsecondaryDepartureRunwayCheckBox.Checked)
-            //        {
-            //            atisSamples.Add("strwy");
-            //            output += runwayToOutput(" SECONDARY TAKEOFF RUNWAY", EHAMsecondaryDepartureRunwayComboBox);
-            //        }
-            //        #endregion
-            //        break;
-            //    #endregion
+                        output += RunwayToOutput(runwaySelection["EHAMsecondaryLandingRunwayComboBox"]);
+                    }
 
-            //    #region EHBK
-            //    //If selected ICAO tab is EHBK.
-            //    case "EHBK":
-            //        //If EHBK main runway check box is checked, generate runway output with value from EHBK main runway combo box.
-            //        if (EHBKmainRunwayCheckBox.Checked)
-            //        {
-            //            atisSamples.Add("mlrwy");
-            //            output += runwayToOutput(" MAIN LANDING RUNWAY", EHBKmainRunwayComboBox);
-            //        }
-            //        break;
-            //    #endregion
+                    //EHAM main departure runway.
+                    if (runwaysChecked["EHAMmainDepartureRunwayCheckBox"] && !runwaySelection["EHAMmainLandingRunwayComboBox"].Equals(runwaySelection["EHAMmainDepartureRunwayComboBox"]))
+                    {
+                        ATISSamples.Add("mtrwy");
+                        output += " " + ATIS.MTR;
 
-            //    #region EHEH
-            //    //If selected ICAO tab is EHEH.
-            //    case "EHEH":
-            //        //If EHEH main runway check box is checked, generate runway output with value from EHEH main runway combo box.
-            //        if (EHEHmainRunwayCheckBox.Checked)
-            //        {
-            //            atisSamples.Add("mlrwy");
-            //            output += runwayToOutput(" MAIN LANDING RUNWAY", EHEHmainRunwayComboBox);
-            //        }
-            //        break;
-            //    #endregion
+                        output += RunwayToOutput(runwaySelection["EHAMmainDepartureRunwayComboBox"]);
+                    }
 
-            //    #region EHGG
-            //    //If selected ICAO tab is EHGG.
-            //    case "EHGG":
-            //        //If EHGG main runway check box is checked, generate runway output with value from EHGG main runway combo box.
-            //        if (EHGGmainRunwayCheckBox.Checked)
-            //        {
-            //            atisSamples.Add("mlrwy");
-            //            output += runwayToOutput(" MAIN LANDING RUNWAY", EHGGmainRunwayComboBox);
-            //        }
-            //        break;
-            //    #endregion
+                    //EHAM secondary departure runway.
+                    if (runwaysChecked["EHAMsecondaryDepartureRunwayCheckBox"])
+                    {
+                        ATISSamples.Add("strwy");
+                        output += " " + ATIS.STR;
 
-            //    #region EHRD
-            //    //If selected ICAO tab is EHRD.
-            //    case "EHRD":
-            //        //If EHRD main runway check box is checked, generate runway output with value from EHRD main runway combo box.
-            //        if (EHRDmainRunwayCheckBox.Checked)
-            //        {
-            //            atisSamples.Add("mlrwy");
-            //            output += runwayToOutput(" MAIN LANDING RUNWAY", EHRDmainRunwayComboBox);
-            //        }
-            //        break;
-            //        #endregion
-            //}
+                        output += RunwayToOutput(runwaySelection["EHAMsecondaryDepartureRunwayComboBox"]);
+                    }
 
-            //return output;
+                    break;
+                #endregion
+
+                #region EHBK
+                case "EHBK":
+                    if (runwaysChecked["EHBKmainRunwayCheckBox"])
+                    {
+                        ATISSamples.Add("mlrwy");
+                        output += " " + ATIS.MLR;
+
+
+                        output += RunwayToOutput(runwaySelection["EHBKmainRunwayComboBox"]);
+                    }
+                    break;
+                #endregion
+
+                #region EHEH
+                case "EHEH":
+                    if (runwaysChecked["EHEHmainRunwayCheckBox"])
+                    {
+                        ATISSamples.Add("mlrwy");
+                        output += " " + ATIS.MLR;
+
+                        output += RunwayToOutput(runwaySelection["EHEHmainRunwayComboBox"]);
+                    }
+                    break;
+                #endregion
+
+                #region EHGG
+                case "EHGG":
+                    if (runwaysChecked["EHGGmainRunwayCheckBox"])
+                    {
+                        ATISSamples.Add("mlrwy");
+                        output += " " + ATIS.MLR;
+
+                        output += RunwayToOutput(runwaySelection["EHGGmainRunwayComboBox"]);
+                    }
+                    break;
+                #endregion
+
+                #region EHRD
+                case "EHRD":
+                    if (runwaysChecked["EHRDmainRunwayCheckBox"])
+                    {
+                        ATISSamples.Add("mlrwy");
+                        output += " " + ATIS.MLR;
+
+                        output += RunwayToOutput(runwaySelection["EHRDmainRunwayComboBox"]);
+                    }
+                    break;
+                #endregion
+            }
+
+            return output;
         }
 
         /// <summary>
@@ -680,7 +646,7 @@ namespace DutchVACCATISGenerator.Logic
         /// <typeparam name="T">List type</typeparam>
         /// <param name="input">List<T></param>
         /// <returns>String output</returns>
-        private string listToOutput<T>(List<T> input)
+        private string ListToOutput<T>(List<T> input)
         {
             var output = string.Empty;
 
@@ -765,7 +731,7 @@ namespace DutchVACCATISGenerator.Logic
                     }
 
                     //If loop phenomena is not the last phenomena of the list, add [and].
-                    if (metarPhenomena != (MetarPhenomena) Convert.ChangeType(input.Last(), typeof(MetarPhenomena)))
+                    if (metarPhenomena != (MetarPhenomena)Convert.ChangeType(input.Last(), typeof(MetarPhenomena)))
                     {
                         ATISSamples.Add("and");
                         output += " AND";
@@ -786,7 +752,7 @@ namespace DutchVACCATISGenerator.Logic
                     //If cloud altitude equals ground level.
                     if (metarCloud.Altitude == 0)
                     {
-                        addIndividualDigitsToATISSamples(metarCloud.Altitude.ToString());
+                        AddIndividualDigitsToATISSamples(metarCloud.Altitude.ToString());
 
                         output += " " + metarCloud.Altitude;
                     }
@@ -794,7 +760,7 @@ namespace DutchVACCATISGenerator.Logic
                     //If cloud altitude is round ten-thousand (e.g. 10000 (100), 20000 (200), 30000 (300)).
                     else if (metarCloud.Altitude % 100 == 0)
                     {
-                        addIndividualDigitsToATISSamples(Math.Floor(Convert.ToDouble(metarCloud.Altitude / 100)) + "0");
+                        AddIndividualDigitsToATISSamples(Math.Floor(Convert.ToDouble(metarCloud.Altitude / 100)) + "0");
                         ATISSamples.Add("thousand");
 
                         output += " " + Math.Floor(Convert.ToDouble(metarCloud.Altitude / 100)) + "0" + " THOUSAND";
@@ -805,7 +771,7 @@ namespace DutchVACCATISGenerator.Logic
                         //If cloud altitude is greater than a ten-thousand (e.g. 12000 (120), 23500 (235), 45000 (450)).
                         if (metarCloud.Altitude / 100 > 0)
                         {
-                            addIndividualDigitsToATISSamples(
+                            AddIndividualDigitsToATISSamples(
                                 Math.Floor(Convert.ToDouble(metarCloud.Altitude / 100)).ToString());
 
                             output += " " + Math.Floor(Convert.ToDouble(metarCloud.Altitude / 100));
@@ -822,7 +788,7 @@ namespace DutchVACCATISGenerator.Logic
                         //If cloud altitude has a thousand (e.g. 2000 (020), 4000 (040), 5000 (050)).
                         if (metarCloud.Altitude / 10 % 10 > 0)
                         {
-                            addIndividualDigitsToATISSamples(
+                            AddIndividualDigitsToATISSamples(
                                 Math.Floor(Convert.ToDouble(metarCloud.Altitude / 10 % 10)).ToString());
                             ATISSamples.Add("thousand");
 
@@ -832,7 +798,7 @@ namespace DutchVACCATISGenerator.Logic
                         //If cloud altitude has a hundred (e.g. 200 (002), 400 (004), 500 (005)).
                         if (metarCloud.Altitude % 10 > 0)
                         {
-                            addIndividualDigitsToATISSamples(Convert.ToString(metarCloud.Altitude % 10));
+                            AddIndividualDigitsToATISSamples(Convert.ToString(metarCloud.Altitude % 10));
                             ATISSamples.Add("hundred");
 
                             output += " " + metarCloud.Altitude % 10 + " HUNDRED";
@@ -856,7 +822,7 @@ namespace DutchVACCATISGenerator.Logic
         ///     Generate operational report.
         /// </summary>
         /// <returns>String output</returns>
-        private string operationalReportToOutput()
+        private string OperationalReportToOutput()
         {
             ATISSamples.Add("opr");
             var output = " OPERATIONAL REPORT";
@@ -1047,22 +1013,28 @@ namespace DutchVACCATISGenerator.Logic
                 ProcessMilitaryMetar(metar);
             //If METAR contains both BECMG and TEMPO trends.
             else if (metar.Contains("BECMG") && metar.Contains("TEMPO"))
-                Metar = metar.IndexOf("BECMG") < metar.IndexOf("TEMPO")
+            {
+                Metar = metar.IndexOf("BECMG", StringComparison.Ordinal) < metar.IndexOf("TEMPO", StringComparison.Ordinal)
                     ? new Metar(SplitMetar(metar, "BECMG")[0].Trim(),
                         SplitMetar(metar, "TEMPO")[1].Trim(),
                         SplitMetar(SplitMetar(metar, "BECMG")[1].Trim(), "TEMPO")[0].Trim())
                     : new Metar(SplitMetar(metar, "TEMPO")[0].Trim(),
                         SplitMetar(SplitMetar(metar, "TEMPO")[1].Trim(), "BECMG")[0].Trim(),
                         SplitMetar(metar, "BECMG")[1].Trim());
+            }
             //If METAR only contains BECMG.
             else if (metar.Contains("BECMG"))
+            {
                 Metar = new Metar(SplitMetar(metar, "BECMG")[0].Trim(),
                     SplitMetar(metar, "BECMG")[1].Trim(),
                     MetarType.BECMG);
+            }
             //If METAR only contains TEMPO.
             else if (metar.Contains("TEMPO"))
+            {
                 Metar = new Metar(SplitMetar(metar, "TEMPO")[0].Trim(),
                     SplitMetar(metar, "TEMPO")[1].Trim(), MetarType.TEMPO);
+            }
             //Process non trend containing METAR.
             else
                 Metar = new Metar(metar);
@@ -1148,27 +1120,22 @@ namespace DutchVACCATISGenerator.Logic
         /// <param name="runway"></param>
         /// <param name="runwayComboBox"></param>
         /// <returns>String of runway output</returns>
-        private string runwayToOutput(string runway, ComboBox runwayComboBox)
+        private string RunwayToOutput(string runway)
         {
-            var output = runway;
-            output += " ";
-
             //Split runway digit identifier from runway identifier.
-            var splitArray = Regex.Split(runwayComboBox.SelectedItem.ToString().Substring(0, 2), @"([0-9])");
+            var splitArray = Regex.Split(runway.Substring(0, 2), @"([0-9])");
 
             foreach (var digit in splitArray)
                 if (!string.IsNullOrEmpty(digit))
                     ATISSamples.Add(digit);
 
             //If selected runway contains runway identifier letter.
-            if (runwayComboBox.SelectedItem.ToString().Length > 2)
-            {
-                //Add runway identifier numbers to output.
-                output += runwayComboBox.SelectedItem.ToString().Substring(0, 2);
-                //Add runway identifier letter to output.
-                return output += GetRunwayMarker(runwayComboBox.SelectedItem.ToString().Substring(2));
-            }
-            return output += runwayComboBox.SelectedItem.ToString();
+            if (runway.Length <= 2)
+                return " " + runway;
+
+            //Add runway identifier numbers to output.
+            //Add runway identifier letter to output.
+            return runway.Substring(0, 2) + GetRunwayMarker(runway.Substring(2));
         }
 
         /// <summary>
@@ -1232,7 +1199,7 @@ namespace DutchVACCATISGenerator.Logic
         /// </summary>
         /// <param name="input">Integer</param>
         /// <returns>String output</returns>
-        private string visibilityToOutput(int input)
+        private string VisibilityToOutput(int input)
         {
             ATISSamples.Add("vis");
             var output = " VISIBILITY";
@@ -1241,7 +1208,7 @@ namespace DutchVACCATISGenerator.Logic
             if (input < 800)
             {
                 ATISSamples.Add("<");
-                addIndividualDigitsToATISSamples("800");
+                AddIndividualDigitsToATISSamples("800");
                 ATISSamples.Add("meters");
 
                 output += " LESS THAN 8 HUNDRED METERS";
@@ -1249,7 +1216,7 @@ namespace DutchVACCATISGenerator.Logic
             //If visibility is lower than 1000 meters (add hundred).
             else if (input < 1000)
             {
-                addIndividualDigitsToATISSamples(Convert.ToString(input / 100));
+                AddIndividualDigitsToATISSamples(Convert.ToString(input / 100));
                 ATISSamples.Add("hundred");
                 ATISSamples.Add("meters");
 
@@ -1258,9 +1225,9 @@ namespace DutchVACCATISGenerator.Logic
             //If visibility is lower than 5000 meters and visibility is not a thousand number.
             else if (input < 5000 && input % 1000 != 0)
             {
-                addIndividualDigitsToATISSamples(Convert.ToString(input / 1000));
+                AddIndividualDigitsToATISSamples(Convert.ToString(input / 1000));
                 ATISSamples.Add("thousand");
-                addIndividualDigitsToATISSamples(Convert.ToString(input % 1000 / 100));
+                AddIndividualDigitsToATISSamples(Convert.ToString(input % 1000 / 100));
                 ATISSamples.Add("hundred");
                 ATISSamples.Add("meters");
 
@@ -1270,7 +1237,7 @@ namespace DutchVACCATISGenerator.Logic
             //If visibility is >= 9999 (10 km phrase).
             else if (input >= 9999)
             {
-                addIndividualDigitsToATISSamples("10");
+                AddIndividualDigitsToATISSamples("10");
                 ATISSamples.Add("km");
 
                 output += " 10 KILOMETERS";
@@ -1278,7 +1245,7 @@ namespace DutchVACCATISGenerator.Logic
             //If visibility is thousand.
             else
             {
-                addIndividualDigitsToATISSamples(Convert.ToString(input / 1000));
+                AddIndividualDigitsToATISSamples(Convert.ToString(input / 1000));
                 ATISSamples.Add("km");
 
                 output += " " + Convert.ToString(input / 1000) + " KILOMETERS";
@@ -1292,7 +1259,7 @@ namespace DutchVACCATISGenerator.Logic
         /// </summary>
         /// <param name="input">String</param>
         /// <returns>String output</returns>
-        private string windToOutput(MetarWind input)
+        private string WindToOutput(MetarWind input)
         {
             var output = string.Empty;
 
@@ -1303,7 +1270,7 @@ namespace DutchVACCATISGenerator.Logic
 
                 ATISSamples.Add("vrb");
 
-                addIndividualDigitsToATISSamples(input.WindKnots);
+                AddIndividualDigitsToATISSamples(input.WindKnots);
 
                 ATISSamples.Add("kt");
 
@@ -1316,15 +1283,15 @@ namespace DutchVACCATISGenerator.Logic
             {
                 #region ADD SAMPLES TO ATISSAMPLES
 
-                addIndividualDigitsToATISSamples(input.WindHeading);
+                AddIndividualDigitsToATISSamples(input.WindHeading);
 
                 ATISSamples.Add("deg");
 
-                addIndividualDigitsToATISSamples(input.WindGustMin);
+                AddIndividualDigitsToATISSamples(input.WindGustMin);
 
                 ATISSamples.Add("max");
 
-                addIndividualDigitsToATISSamples(input.WindGustMax);
+                AddIndividualDigitsToATISSamples(input.WindGustMax);
 
                 ATISSamples.Add("kt");
 
@@ -1338,11 +1305,11 @@ namespace DutchVACCATISGenerator.Logic
             {
                 #region ADD SAMPLES TO ATISSAMPLES
 
-                addIndividualDigitsToATISSamples(input.WindHeading);
+                AddIndividualDigitsToATISSamples(input.WindHeading);
 
                 ATISSamples.Add("deg");
 
-                addIndividualDigitsToATISSamples(input.WindKnots);
+                AddIndividualDigitsToATISSamples(input.WindKnots);
 
                 ATISSamples.Add("kt");
 
@@ -1358,11 +1325,11 @@ namespace DutchVACCATISGenerator.Logic
 
                 ATISSamples.Add("vrbbtn");
 
-                addIndividualDigitsToATISSamples(input.WindVariableLeft);
+                AddIndividualDigitsToATISSamples(input.WindVariableLeft);
 
                 ATISSamples.Add("and");
 
-                addIndividualDigitsToATISSamples(input.WindVariableRight);
+                AddIndividualDigitsToATISSamples(input.WindVariableRight);
 
                 ATISSamples.Add("deg");
 

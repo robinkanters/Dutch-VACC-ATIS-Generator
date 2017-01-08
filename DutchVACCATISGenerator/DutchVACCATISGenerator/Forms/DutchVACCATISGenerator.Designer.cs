@@ -345,7 +345,7 @@
             "36L",
             "36C"});
             this.EHAMmainDepartureRunwayComboBox.Location = new System.Drawing.Point(6, 36);
-            this.EHAMmainDepartureRunwayComboBox.Name = "ehamMainDepartureRunwayComboBox";
+            this.EHAMmainDepartureRunwayComboBox.Name = "EHAMmainDepartureRunwayComboBox";
             this.EHAMmainDepartureRunwayComboBox.Size = new System.Drawing.Size(157, 21);
             this.EHAMmainDepartureRunwayComboBox.TabIndex = 9;
             // 

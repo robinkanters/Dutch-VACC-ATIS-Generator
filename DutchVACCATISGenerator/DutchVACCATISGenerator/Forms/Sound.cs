@@ -20,12 +20,12 @@ namespace DutchVACCATISGenerator.Forms
         private readonly int _bottom;
         private readonly int _left;
         private AudioFileReader _audio;
-        private readonly MetarLogic _metarLogic;
+        private readonly IMetarLogic _metarLogic;
 
         /// <summary>
         ///     Constructor of Sound. Initializes new instance of Sound.
         /// </summary>
-        public Sound(bool enableBuild, int left, int bottom, MetarLogic metarLogic)
+        public Sound(bool enableBuild, int left, int bottom, IMetarLogic metarLogic)
         {
             InitializeComponent();
 

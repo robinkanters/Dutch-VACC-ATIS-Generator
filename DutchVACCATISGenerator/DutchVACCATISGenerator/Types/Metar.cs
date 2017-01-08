@@ -523,7 +523,7 @@ namespace DutchVACCATISGenerator.Types
                 switch (metarType)
                 {
                     case MetarType.FULL:
-                        Wind = input.GetMetarWindVariable(MetarBECMG.Wind);
+                        Wind = input.GetMetarWindVariable(Wind);
                         return true;
 
                     case MetarType.BECMG:

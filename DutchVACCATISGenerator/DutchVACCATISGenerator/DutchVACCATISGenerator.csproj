@@ -96,6 +96,7 @@
     <Reference Include="System.Data" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.IO.Compression.FileSystem" />
+    <Reference Include="System.Web" />
     <Reference Include="System.Windows.Forms" />
   </ItemGroup>
   <ItemGroup>
@@ -126,6 +127,16 @@
     <Compile Include="FlashingWindow.cs" />
     <Compile Include="Logic\CloudLogic.cs" />
     <Compile Include="Logic\MetarLogic.cs" />
+    <Compile Include="Resources\ATIS.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>ATIS.resx</DependentUpon>
+    </Compile>
+    <Compile Include="Resources\ICAO.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>ICAO.resx</DependentUpon>
+    </Compile>
     <Compile Include="Resources\NATO phonetic alphabet.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
@@ -193,6 +204,14 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Forms\TAF.resx">
       <DependentUpon>TAF.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\ATIS.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>ATIS.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\ICAO.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>ICAO.Designer.cs</LastGenOutput>
     </EmbeddedResource>
     <EmbeddedResource Include="Resources\NATO phonetic alphabet.resx">
       <Generator>ResXFileCodeGenerator</Generator>

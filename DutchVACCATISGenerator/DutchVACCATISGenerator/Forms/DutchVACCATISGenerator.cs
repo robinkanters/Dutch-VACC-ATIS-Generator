@@ -21,7 +21,7 @@ namespace DutchVACCATISGenerator.Forms
     /// </summary>
     public partial class DutchVACCATISGenerator : Form
     {
-        private readonly MetarLogic _metarLogic;
+        private readonly IMetarLogic _metarLogic;
         private readonly IMetarWorker _metarWorker;
         private readonly IRealRunwayWorker _realRunwayWorker;
         private readonly IVersionWorker _versionWorker;
@@ -453,7 +453,46 @@ namespace DutchVACCATISGenerator.Forms
             if (!CheckRunwaySelected())
                 return;
 
-            _metarLogic.GenerateAtis();
+            //Generate output.
+            outputTextBox.Text = _metarLogic.GenerateAtis(PhoneticAlphabet[ATISIndex], GetRunwayChecked(), GetRunwaySelection(), addWindRecordCheckBox.Checked, userDefinedExtraCheckBox.Checked, copyOutputCheckBox.Checked);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        private Dictionary<string, bool> GetRunwayChecked()
+        {
+            return new Dictionary<string, bool>
+            {
+                {EHAMmainDepartureRunwayCheckBox.Name, EHAMmainDepartureRunwayCheckBox.Checked},
+                {EHAMmainLandingRunwayCheckBox.Name, EHAMmainLandingRunwayCheckBox.Checked},
+                {EHAMsecondaryDepartureRunwayCheckBox.Name, EHAMsecondaryDepartureRunwayCheckBox.Checked},
+                {EHAMsecondaryLandingRunwayCheckBox.Name, EHAMsecondaryLandingRunwayCheckBox.Checked},
+                {EHRDmainRunwayCheckBox.Name, EHRDmainRunwayCheckBox.Checked},
+                {EHEHmainRunwayCheckBox.Name, EHEHmainRunwayCheckBox.Checked},
+                {EHGGmainRunwayCheckBox.Name, EHGGmainRunwayCheckBox.Checked},
+                {EHBKmainRunwayCheckBox.Name, EHBKmainRunwayCheckBox.Checked}
+            };
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        private Dictionary<string, string> GetRunwaySelection()
+        {
+            return new Dictionary<string, string>
+            {
+                {EHAMmainDepartureRunwayComboBox.Name, EHAMmainDepartureRunwayComboBox.Text},
+                {EHAMmainLandingRunwayComboBox.Name, EHAMmainLandingRunwayComboBox.Text},
+                {EHAMsecondaryDepartureRunwayComboBox.Name, EHAMsecondaryDepartureRunwayComboBox.Text},
+                {EHAMsecondaryLandingRunwayComboBox.Name, EHAMsecondaryLandingRunwayComboBox.Text},
+                {EHRDmainRunwayComboBox.Name, EHRDmainRunwayComboBox.Text},
+                {EHEHmainRunwayComboBox.Name, EHEHmainRunwayComboBox.Text},
+                {EHGGmainRunwayComboBox.Name, EHGGmainRunwayComboBox.Text},
+                {EHBKmainRunwayComboBox.Name, EHBKmainRunwayComboBox.Text}
+            };
         }
 
         /// <summary>
@@ -720,7 +759,7 @@ namespace DutchVACCATISGenerator.Forms
                 MessageBox.Show("Error parsing the METAR, check if METAR is in correct format.", "Error");
                 return;
             }
-            
+
             //Checks if ATIS index has to be increased.
             if (!(UserLetterSelection | RandomLetter | ICAOTabSwitched | (lastLabel.Text == string.Empty)))
             {
