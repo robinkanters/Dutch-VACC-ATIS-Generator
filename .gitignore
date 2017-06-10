@@ -1,5 +1,4 @@
 Sound files/
-Installer/
 DutchVACCATISGenerator/DutchVACCATISGenerator/bin/
 DutchVACCATISGenerator/DutchVACCATISGenerator/obj/
 DutchVACCATISGenerator/DutchVACCATISGenerator.v12.suo
@@ -9,3 +8,6 @@ DutchVACCATISGenerator/DutchVACCATISGenerator.WPF/
 DutchVACCATISGenerator/DutchVACCATISGenerator.Test/obj/
 DutchVACCATISGenerator/DutchVACCATISGenerator.Test/bin/
 DutchVACCATISGenerator/TestResults/
+Installer/Manuals/
+*.zip
+Installer/Dutch VACC ATIS Generator - Setup.exe
